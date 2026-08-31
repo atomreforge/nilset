@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">空集</string>
+    <string name="login_title">「空集」</string>
+    <string name="username_hint">用户名</string>
+    <string name="password_hint">密码</string>
+    <string name="btn_login">登 录</string>
+    <string name="console_link">进入控制台</string>
+    <string name="console_title">控制台</string>
+    <string name="console_input_hint">输入内部指令</string>
+    <string name="back">返回</string>
+    <string name="btn_send">发送</string>
+</resources>

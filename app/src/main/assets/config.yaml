@@ -1,0 +1,17 @@
+# 默认配置：模拟器连接本机 Go 后端 4703 端口
+
+main:
+  isDebugMode: true
+
+api:
+  baseUrl: http://10.0.2.2:4703
+  apiPrefix: /api/v1
+  timeouts:
+    connect: 10s
+    read: 15s
+
+auth:
+  autoRefresh: false
+
+log:
+  isHttpLoggingEnabled: true

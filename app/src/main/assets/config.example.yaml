@@ -1,0 +1,23 @@
+# ATOM「空集」客户端配置模板
+# 复制此文件为 config.yaml 并填入实际值。
+
+main:
+  isDebugMode: true
+
+api:
+  # 必填。后端服务地址。
+  # Android 模拟器访问本机: http://10.0.2.2:4703/
+  # 真机局域网: http://<电脑局域网IP>:4703/
+  # 生产环境: https://<域名>/
+  baseUrl: http://127.0.0.1:4703
+  apiPrefix: /api/v1
+  timeouts:
+    connect: 10s
+    read: 15s
+
+auth:
+  # access_token 过期后自动使用 refresh_token 换发（后端就绪后启用）
+  autoRefresh: false
+
+log:
+  isHttpLoggingEnabled: true
