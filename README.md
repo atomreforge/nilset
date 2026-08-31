@@ -1,7 +1,9 @@
 # ATOM「空集」Android Client
 
 ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是面向日常协作和趣味工具的有机统一（）。目前只实现了账号，控制台和会话管理，剩下的等下次commit吧（（
+
 （还有很多很明显不是我写的，Mapher不直接对那些文字负责（））
+
 客户端依赖 [atomreforge/daizy-night-server](https://github.com/atomreforge/daizy-night-server) 提供后端 API。该仓库是服务端项目；本仓库只包含 Android 客户端代码。
 
 ## 功能
