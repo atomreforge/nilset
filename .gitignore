@@ -12,3 +12,4 @@
 /.cxx/
 
 app/src/debug/assets/config.yaml
+app/src/debug/assets/test-account.yaml

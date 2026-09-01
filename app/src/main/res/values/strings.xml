@@ -7,6 +7,20 @@
     <string name="console_link">进入控制台</string>
     <string name="console_title">控制台</string>
     <string name="console_input_hint">输入内部指令</string>
+    <string name="home_title">主页</string>
+    <string name="home_empty">主页待补充</string>
+    <string name="drawer_header_title">「空集」</string>
+    <string name="drawer_open">展开侧边栏</string>
+    <string name="drawer_home">主页</string>
+    <string name="drawer_note">随心记</string>
+    <string name="drawer_schedule">课表共建</string>
+    <string name="drawer_todo">待办事项</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_open_console">打开控制台</string>
+    <string name="home_schedule_empty">课表共建待补充</string>
+    <string name="home_note_empty">随心记待补充</string>
+    <string name="home_todo_empty">待办事项待补充</string>
+    <string name="home_settings_empty">设置待补充</string>
     <string name="back">返回</string>
     <string name="btn_send">发送</string>
 </resources>

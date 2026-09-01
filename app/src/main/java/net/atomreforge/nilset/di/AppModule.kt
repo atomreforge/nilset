@@ -18,13 +18,17 @@ import net.atomreforge.nilset.core.command.commands.ClearConsoleCommand
 import net.atomreforge.nilset.core.command.commands.ClearDataCommand
 import net.atomreforge.nilset.core.command.commands.NoLoginCommand
 import net.atomreforge.nilset.core.command.commands.StatusCommand
+import net.atomreforge.nilset.core.logging.AppLogger
+import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
+import net.atomreforge.nilset.data.remote.interceptor.TokenAuthenticator
 import net.atomreforge.nilset.data.repository.RemoteSessionRepository
 import net.atomreforge.nilset.data.repository.SessionRepository
+import net.atomreforge.nilset.data.repository.SessionTokenRefresher
 import net.atomreforge.nilset.data.session.SessionDataStore
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -37,6 +41,25 @@ import javax.inject.Singleton
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "nilset_session"
 )
+
+private class HttpLogBridge(private val appLogger: AppLogger) : HttpLoggingInterceptor.Logger {
+    override fun log(message: String) {
+        val safeMessage = redactSensitiveValues(message)
+        val level = when {
+            safeMessage.contains("HTTP FAILED", ignoreCase = true) -> LogLevel.ERROR
+            safeMessage.contains(Regex("^<--\\s+5\\d{2}\\b")) -> LogLevel.ERROR
+            safeMessage.contains(Regex("^<--\\s+4\\d{2}\\b")) -> LogLevel.WARNING
+            else -> LogLevel.INFO
+        }
+        appLogger.log(level, "HTTP", safeMessage)
+    }
+
+    private fun redactSensitiveValues(message: String): String = message
+        .replace(Regex("(?i)\"password\"\\s*:\\s*\"[^\"]*\""), "\"password\":\"[REDACTED]\"")
+        .replace(Regex("(?i)\"access_token\"\\s*:\\s*\"[^\"]*\""), "\"access_token\":\"[REDACTED]\"")
+        .replace(Regex("(?i)\"refresh_token\"\\s*:\\s*\"[^\"]*\""), "\"refresh_token\":\"[REDACTED]\"")
+        .replace(Regex("(?i)\"register_code\"\\s*:\\s*\"[^\"]*\""), "\"register_code\":\"[REDACTED]\"")
+}
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -59,14 +82,22 @@ object AppModule {
     fun provideOkHttpClient(
         config: AppConfig,
         authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+        appLogger: AppLogger,
     ): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(DurationParser.parse(config.api.timeouts.connect).toMillis(), TimeUnit.MILLISECONDS)
         .readTimeout(DurationParser.parse(config.api.timeouts.read).toMillis(), TimeUnit.MILLISECONDS)
         .apply {
             if (config.log.isHttpLoggingEnabled) {
-                addInterceptor(HttpLoggingInterceptor().apply {
+                addInterceptor(HttpLoggingInterceptor(HttpLogBridge(appLogger)).apply {
                     level = HttpLoggingInterceptor.Level.BODY
+                    redactHeader("Authorization")
                 })
+            }
+        }
+        .apply {
+            if (config.auth.autoRefresh) {
+                authenticator(tokenAuthenticator)
             }
         }
         .addInterceptor(authInterceptor)
@@ -119,4 +150,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSessionRepository(impl: RemoteSessionRepository): SessionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionTokenRefresher(impl: RemoteSessionRepository): SessionTokenRefresher
 }

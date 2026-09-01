@@ -2,6 +2,7 @@ package net.atomreforge.nilset.data.config
 
 import android.content.Context
 import com.charleskorn.kaml.Yaml
+import net.atomreforge.nilset.const.ConfigFiles
 
 /**
  * 配置加载器。
@@ -13,9 +14,6 @@ import com.charleskorn.kaml.Yaml
  */
 object ConfigLoader {
 
-    private const val TEST_CONFIG_FILE = "config.test.yaml"
-    private const val CONFIG_FILE = "config.yaml"
-
     private var cached: AppConfig? = null
 
     fun mustLoad(context: Context): AppConfig {
@@ -23,7 +21,7 @@ object ConfigLoader {
 
         val assets = context.assets
         val fileNames = assets.list("") ?: emptyArray()
-        val actualFile = if (TEST_CONFIG_FILE in fileNames) TEST_CONFIG_FILE else CONFIG_FILE
+        val actualFile = if (ConfigFiles.TEST_CONFIG in fileNames) ConfigFiles.TEST_CONFIG else ConfigFiles.CONFIG
 
         val yamlText = assets.open(actualFile).bufferedReader().use { it.readText() }
 

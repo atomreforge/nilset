@@ -7,8 +7,11 @@ import net.atomreforge.nilset.data.session.UserInfo
 interface SessionRepository {
 
     val sessionState: StateFlow<SessionState>
+    val isSessionReady: StateFlow<Boolean>
 
     suspend fun login(username: String, password: String): Result<Unit>
+
+    suspend fun enterLocalSession(username: String)
 
     suspend fun register(
         username: String,
@@ -19,7 +22,7 @@ interface SessionRepository {
 
     suspend fun fetchUserInfo(): Result<UserInfo>
 
-    fun logout()
+    suspend fun logout(): Result<Unit>
 
     fun enterSpecialMode()
 

@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.res.painterResource
@@ -39,6 +40,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import net.atomreforge.nilset.core.logging.ConsoleEntry
+import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,9 +91,9 @@ fun ConsoleScreen(
         ) {
             uiState.entries.forEach { entry ->
                 Text(
-                    text = entry,
+                    text = entry.displayText(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = entry.logColor(),
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             }
@@ -166,4 +169,13 @@ fun ConsoleScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ConsoleEntry.logColor(): Color = when (level) {
+    LogLevel.DEBUG -> Color(0xFF90A4AE)
+    LogLevel.INFO -> MaterialTheme.colorScheme.onBackground
+    LogLevel.SUCCESS -> Color(0xFF66BB6A)
+    LogLevel.WARNING -> Color(0xFFFFB74D)
+    LogLevel.ERROR -> Color(0xFFEF5350)
 }

@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
+import net.atomreforge.nilset.core.logging.ConsoleEntry
+import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.core.command.CommandContext
 import net.atomreforge.nilset.core.command.NilSetCommandCenter
 import net.atomreforge.nilset.data.repository.ConsoleHistoryRepository
@@ -47,7 +49,7 @@ class ConsoleViewModel @Inject constructor(
 
     init {
         if (consoleHistoryRepository.entries.value.isEmpty()) {
-            appendOutput("控制台已连接，输入 /help 查看可用指令。")
+            appendOutput("控制台已连接，输入 /help 查看可用指令。", LogLevel.INFO)
         }
 
         viewModelScope.launch {
@@ -64,7 +66,8 @@ class ConsoleViewModel @Inject constructor(
 
         val context = CommandContext(consoleHistoryRepository, sessionRepository)
         val result = commandCenter.execute(trimmed, context)
-        appendOutput("> $trimmed\n$result")
+        appendOutput("> $trimmed", LogLevel.INFO)
+        appendOutput(result, LogLevel.INFO)
     }
 
     fun commandSuggestionsFor(input: String): List<ConsoleCommandSuggestion> {
@@ -77,15 +80,15 @@ class ConsoleViewModel @Inject constructor(
         return availableCommands.filter { it.name.lowercase().startsWith(query) }
     }
 
-    private fun appendOutput(text: String) {
-        consoleHistoryRepository.append(text)
+    private fun appendOutput(text: String, level: LogLevel) {
+        consoleHistoryRepository.append(ConsoleEntry(message = text, level = level))
     }
 
 }
 
 /** 控制台 UI 状态：输出条目列表，由 UI 负责拼接渲染 */
 data class ConsoleUiState(
-    val entries: List<String> = emptyList(),
+    val entries: List<ConsoleEntry> = emptyList(),
 )
 
 data class ConsoleCommandSuggestion(

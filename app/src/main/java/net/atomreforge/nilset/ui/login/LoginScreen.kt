@@ -1,6 +1,5 @@
 package net.atomreforge.nilset.ui.login
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,10 +8,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,10 +24,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import net.atomreforge.nilset.R
@@ -31,21 +37,38 @@ import net.atomreforge.nilset.R
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
+    snackbarHostState: SnackbarHostState,
+    snackbarScope: CoroutineScope,
     onNavigateToConsole: () -> Unit,
+    onNavigateToHome: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     LaunchedEffect(uiState.loginMessage) {
         uiState.loginMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            val shouldNavigateHome = uiState.isLoginSuccess
             viewModel.onLoginMessageShown()
+            if (shouldNavigateHome) onNavigateToHome()
+            snackbarScope.launch {
+                val displayJob = launch {
+                    snackbarHostState.showSnackbar(
+                        message = message,
+                        duration = SnackbarDuration.Indefinite,
+                    )
+                }
+                delay(1200)
+                if (snackbarHostState.currentSnackbarData?.visuals?.message == message) {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                }
+                displayJob.join()
+            }
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

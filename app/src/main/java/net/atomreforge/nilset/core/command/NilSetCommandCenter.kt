@@ -1,5 +1,7 @@
 package net.atomreforge.nilset.core.command
 
+import net.atomreforge.nilset.const.CommandExpressions
+
 /**
  * 控制台指令分发中心（纯 Kotlin，不依赖 Android UI）。
  * 接收用户输入，通过 [CommandRegistry] 查找并执行对应指令。
@@ -10,13 +12,13 @@ class NilSetCommandCenter(private val registry: CommandRegistry) {
     private fun dispatch(input: String, context: CommandContext): String {
         val command = input.trim()
 
-        if (!command.startsWith(COMMAND_PREFIX)) {
+        if (!command.startsWith(CommandExpressions.PREFIX)) {
             return "不是内部指令，请输入以 / 开头的指令（如 /help）"
         }
 
-        val commandName = command.removePrefix(COMMAND_PREFIX)
+        val commandName = command.removePrefix(CommandExpressions.PREFIX)
 
-        if (commandName == "help") {
+        if (commandName == CommandExpressions.HELP) {
             return buildHelp()
         }
 
@@ -46,7 +48,4 @@ class NilSetCommandCenter(private val registry: CommandRegistry) {
         }
     }.trimEnd()
 
-    companion object {
-        private const val COMMAND_PREFIX = "/"
-    }
 }

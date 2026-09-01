@@ -1,6 +1,7 @@
 package net.atomreforge.nilset.data.remote.interceptor
 
 import dagger.Lazy
+import net.atomreforge.nilset.const.ApiExpressions
 import net.atomreforge.nilset.data.repository.SessionRepository
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -17,7 +18,7 @@ class AuthInterceptor @javax.inject.Inject constructor(
         val token = sessionRepository.get().sessionState.value.accessToken
         val request = if (token != null) {
             chain.request().newBuilder()
-                .header("Authorization", "Bearer $token")
+                .header(ApiExpressions.Header.AUTHORIZATION, "${ApiExpressions.Header.BEARER_PREFIX} $token")
                 .build()
         } else {
             chain.request()

@@ -16,8 +16,8 @@ api:
     read: 15s
 
 auth:
-  # access_token 过期后自动使用 refresh_token 换发（后端就绪后启用）
-  autoRefresh: false
+  # access_token 过期后自动使用 refresh_token 换发并覆盖保存新 token 对
+  autoRefresh: true
 
 log:
   isHttpLoggingEnabled: true

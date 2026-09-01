@@ -1,6 +1,6 @@
 # ATOM「空集」Android Client
 
-ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是面向日常协作和趣味工具的有机统一（）。目前只实现了账号，控制台和会话管理，剩下的等下次commit吧（（
+ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是面向日常协作和趣味工具的有机统一（）。
 
 （还有很多很明显不是我写的，Mapher不直接对那些文字负责（））
 
@@ -13,6 +13,8 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 - 登录与注册 API 接入。
 - 基于 DataStore 的会话持久化，应用重启后可恢复会话。
 - 类终端控制台页面，支持内部指令扩展。
+- 控制台指令候选补齐、进程内历史保留和会话级文件日志。
+- 登录后的主页与设置页底边栏导航；主页提供侧边栏功能入口。
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
 - Material 3 深色主题、自定义字体和可扩展的主题配置。
@@ -42,13 +44,15 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 ```text
 app/src/main/java/net/atomreforge/nilset/
 ├─ core/          # 纯 Kotlin 的指令模型与命令注册中心
+│  └─ logging/    # Logcat、控制台和文件日志
+├─ const/         # 跨层路由、API、存储键和配置文件表述
 ├─ data/
 │  ├─ config/     # YAML 配置模型与加载器
-│  ├─ remote/     # Retrofit API、DTO、AuthInterceptor
-│  ├─ repository/ # 会话业务仓库
+│  ├─ remote/     # Retrofit API、DTO、AuthInterceptor、TokenAuthenticator
+│  ├─ repository/ # 会话与控制台历史仓库
 │  └─ session/    # DataStore 会话数据源
 ├─ di/            # Hilt 模块
-└─ ui/            # 登录页、控制台页、主题
+└─ ui/            # 登录、控制台、主页/设置导航、主题
 ```
 
 ## 环境要求
@@ -82,9 +86,10 @@ api:
 - `POST /api/v1/register`
 - `POST /api/v1/login`
 - `POST /api/v1/refresh-access-token`
-- `GET /api/v1/user/me`
+- `GET /api/v1/user/{username}/me`
+- `POST /api/v1/user/signout`
 
-自动刷新会话的完整链路尚未作为默认行为启用；`auth.autoRefresh` 目前默认为 `false`。
+访问令牌 401 后会按 `auth.autoRefresh` 使用 refresh token 自动换发；当前默认启用。
 
 ## 配置
 
@@ -101,6 +106,7 @@ api:
 | `app/src/main/assets/config.yaml` | 默认基线配置 | 是 |
 | `app/src/debug/assets/config.yaml` | 本机联调配置 | 否 |
 | `app/src/main/assets/config.test.yaml` | 临时测试覆盖配置 | 按需，默认不应提交 |
+| `app/src/debug/assets/test-account.yaml` | 本地测试账号，支持本地登录 | 否 |
 
 主要配置字段：
 
@@ -138,7 +144,7 @@ log:
 ## 项目状态
 
 - Phase 0-5 已完成：架构分层、ViewModel、会话持久化、指令系统、Compose 和 Hilt。
-- Phase 6 计划补充核心层、UI 测试和 CI。
+- Phase 6 进行中：主页/设置壳层、令牌自动刷新和文件日志已接入，仍需补测试和 CI。
 - Phase 7 计划完善发布工程化，包括 R8、签名、崩溃上报和 baseline profile。
 
 架构设计与阶段规划见 [ARCHITECTURE.md](ARCHITECTURE.md)。

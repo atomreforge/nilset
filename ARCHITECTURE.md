@@ -18,7 +18,7 @@
 
 ```text
 UI 层
-  LoginScreen / ConsoleScreen
+  LoginScreen / ConsoleScreen / HomeScreen / SettingsScreen
   只展示 UiState、转发用户事件
         ↓
 Presentation 状态层
@@ -41,14 +41,25 @@ Data 层
 - 页面通过 `hiltViewModel()` 获取 ViewModel。
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
 - 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令候选，候选按字母序过滤。
+- 登录反馈使用 Material 3 `SnackbarHost`；登录成功后清除登录页返回栈并进入主页。
+- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏，主页项固定在列表置顶，其余功能入口先作为占位栏展示。
+- 主页与设置页共用 Material 3 `NavigationBar`；设置是独立顶层路由，不作为侧边栏项。
+- 主页和设置页在主路由内并排布局，通过 `graphicsLayer` 平移共享同一版面；切换动画可被新的导航目标立即接管。
 
 ### Data 层
 
 - `SessionRepository` 是会话业务接口，`RemoteSessionRepository` 是当前实现。
 - `SessionDataStore` 只负责会话的读写和清除，不包含登录业务规则。
+- 应用启动会先等待 DataStore 会话恢复，再根据 `SessionState` 决定初始进入登录页还是主页。
 - `DaizyNightApi` 定义注册、登录、刷新访问令牌和获取用户信息接口。
 - `AuthInterceptor` 从会话状态读取 access token，并统一添加 `Authorization: Bearer` 头。
+- 用户信息接口使用 `/api/v1/user/{username}/me`；路径用户名来自持久化会话，仅用于服务端属主校验。
+- access token 返回 401 时按配置自动刷新；refresh token 采用一次性轮换语义，成功后整体覆盖 access/refresh token 对。
+- 登出会先保证本地持有可用 token 对，再把当前 refresh token 提交给服务端吊销，最后清空本地会话。
 - `ConsoleHistoryRepository` 是进程内单例，保存控制台输出，避免页面返回后历史丢失。
+- 应用日志通过 `AppLogger` 同时写入 Logcat、控制台历史和磁盘日志；控制台只保留最近 500 条，磁盘文件不主动清理。
+- 每次 App 进程启动会在 `files/logs` 创建 `session-<序号>-<时间>.log`，序号按已有日志文件最大序号递增。
+- HTTP 日志由 OkHttp 拦截器接入并按状态分级着色。
 - `ConfigLoader.mustLoad()` 加载强类型 YAML 配置，解析或校验失败会快速失败。
 
 ### Core 层
@@ -73,8 +84,8 @@ Data 层
 
 - 登录成功后保存 access token、refresh token 和用户信息。
 - 应用进程内通过 `SessionState` 暴露状态，磁盘上通过 DataStore 恢复。
-- `AuthInterceptor` 通过 `dagger.Lazy` 打破 OkHttp、Retrofit 与会话仓库之间的构建期循环依赖。
-- 自动刷新当前未作为默认行为启用，`auth.autoRefresh` 预留为 `false`。
+- `AuthInterceptor` 和 `TokenAuthenticator` 通过 `dagger.Lazy` 打破 OkHttp、Retrofit 与会话仓库之间的构建期循环依赖。
+- `auth.autoRefresh` 控制是否注册 401 自动刷新器；当前默认与 debug 联调配置均已启用。
 
 ### 指令
 
@@ -84,24 +95,36 @@ Data 层
 - 控制台历史保存在 `ConsoleHistoryRepository` 进程内单例中，导航返回后仍可显示。
 - 输入 `/` 后展示当前构建可见的候选指令，继续输入会按指令名前缀过滤。
 
+### 本地测试账号
+
+- 测试账号只放在 `app/src/debug/assets/test-account.yaml`，该文件已被 `.gitignore` 排除。
+- 文件存在且 `useLocalLogin: true` 时，debug 包内匹配账号密码后可建立本地会话并进入主页，不依赖服务端。
+- 文件不存在时走正常 Retrofit 登录；release 包不包含该 debug 资源。
+
 ## 4. 目录映射
 
 ```text
 app/src/main/java/net/atomreforge/nilset/
 ├─ core/
-│  └─ command/              # 指令契约、注册中心、具体指令
+│  ├─ command/              # 指令契约、注册中心、具体指令
+│  ├─ logging/              # 控制台日志模型、级别、统一日志入口与会话文件
+├─ const/                   # 跨层表述常量：路由、接口、存储键、配置文件名、指令前缀
 ├─ data/
 │  ├─ config/               # AppConfig、ConfigLoader、时长解析
 │  ├─ remote/
 │  │  ├─ api/               # Retrofit 接口
 │  │  ├─ dto/               # 网络传输模型
-│  │  └─ interceptor/       # AuthInterceptor
+│  │  └─ interceptor/       # AuthInterceptor 与 TokenAuthenticator
 │  ├─ repository/           # 会话仓库与控制台历史仓库
 │  └─ session/              # SessionState 与 DataStore 数据源
 ├─ di/                       # Hilt Module
 └─ ui/
    ├─ login/                # 登录 Screen / ViewModel
    ├─ console/              # 控制台 Screen / ViewModel
+   ├─ home/                 # 主页与侧边栏
+   ├─ main/                 # 主页/设置共用的底部导航
+   ├─ session/              # 会话状态提供给启动路由使用
+   ├─ settings/             # 设置页
    └─ theme/                # Material 3 主题、颜色、字体
 ```
 
@@ -123,8 +146,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 没有独立 Domain 层：当前业务规模较小，UseCase 仍按需后置。
 - 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
-- 会话恢复后导航仍从登录页开始：尚未根据 `SessionState` 自动决定初始路由。
-- 自动刷新未接完：接口已定义，但默认配置仍关闭自动刷新。
+- 课表 API 尚未接入客户端业务层：接口契约已由服务端给出，但当前主页和设置页还没有对应功能。
 - 测试还是模板为主：核心指令、Repository、ViewModel 和 Compose UI 的有效测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。
@@ -144,7 +166,7 @@ app/src/main/java/net/atomreforge/nilset/
 - **Phase 3（已完成）**：指令系统重构为命令接口、注册表、结构化结果和 debug 门控。
 - **Phase 4（已完成）**：迁移到 Jetpack Compose、Material 3、单 Activity 和 Navigation。
 - **Phase 5（已完成）**：用 Hilt 替代手动 DI，建立 Hilt/KSP 构建链路。
-- **Phase 6**：补有效测试、基于会话的初始路由决策、访问令牌自动刷新和 CI。
+- **Phase 6（进行中）**：访问令牌自动刷新已接入，仍需补有效测试和 CI。
 - **Phase 7**：完善发布工程化，包括 R8、签名、崩溃上报和性能优化。
 - **后续产品方向**：课表共享、共同空闲时间计算、随机抽签、分组和其他操作入口模块。
 
@@ -153,4 +175,5 @@ app/src/main/java/net/atomreforge/nilset/
 - 新界面优先复用 Compose + Material 3 现成组件，不重复造控件。
 - 新业务先接入 Repository 与 UiState，避免 UI 直接持有业务状态。
 - 指令和后续功能模块优先保持开闭原则，减少修改分发逻辑。
+- 跨层表述常量统一放在 `const/` 包中，按 `AppRoutes`、`ApiExpressions`、`SessionStoreKeys` 等对象分组；业务文件不再新增顶层 `const`。
 - 只有出现明确复用、隔离或编译时间收益时，再引入 Domain 层或多模块拆分。
