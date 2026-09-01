@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -35,6 +35,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import net.atomreforge.nilset.R
@@ -46,14 +48,16 @@ fun ConsoleScreen(
     onNavigateBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var commandInput by rememberSaveable { mutableStateOf("") }
+    var commandInput by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(""))
+    }
     var commandSuggestionsExpanded by rememberSaveable { mutableStateOf(false) }
-    val commandSuggestions = viewModel.commandSuggestionsFor(commandInput)
+    val commandSuggestions = viewModel.commandSuggestionsFor(commandInput.text)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(16.dp),
     ) {
         Row(
@@ -107,7 +111,7 @@ fun ConsoleScreen(
                     value = commandInput,
                     onValueChange = { input ->
                         commandInput = input
-                        commandSuggestionsExpanded = input.startsWith("/")
+                        commandSuggestionsExpanded = input.text.startsWith("/")
                     },
                     label = { Text(stringResource(R.string.console_input_hint)) },
                     singleLine = true,
@@ -136,7 +140,11 @@ fun ConsoleScreen(
                                 }
                             },
                             onClick = {
-                                commandInput = "/${suggestion.name}"
+                                val command = "/${suggestion.name}"
+                                commandInput = TextFieldValue(
+                                    text = command,
+                                    selection = TextRange(command.length),
+                                )
                                 commandSuggestionsExpanded = false
                             },
                         )
@@ -146,8 +154,8 @@ fun ConsoleScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {
-                    viewModel.onCommandSent(commandInput)
-                    commandInput = ""
+                    viewModel.onCommandSent(commandInput.text)
+                    commandInput = TextFieldValue("")
                 },
                 modifier = Modifier
                     .height(56.dp)
