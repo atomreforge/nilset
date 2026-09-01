@@ -28,6 +28,23 @@ class ConsoleViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ConsoleUiState(consoleHistoryRepository.entries.value))
     val uiState: StateFlow<ConsoleUiState> = _uiState.asStateFlow()
 
+    val availableCommands: List<ConsoleCommandSuggestion> = buildList {
+        add(
+            ConsoleCommandSuggestion(
+                name = "help",
+                description = "查看可用指令",
+            )
+        )
+        addAll(
+            commandCenter.visibleCommands().map { command ->
+                ConsoleCommandSuggestion(
+                    name = command.name,
+                    description = command.description,
+                )
+            }
+        )
+    }.sortedBy { it.name.lowercase() }
+
     init {
         if (consoleHistoryRepository.entries.value.isEmpty()) {
             appendOutput("控制台已连接，输入 /help 查看可用指令。")
@@ -50,6 +67,16 @@ class ConsoleViewModel @Inject constructor(
         appendOutput("> $trimmed\n$result")
     }
 
+    fun commandSuggestionsFor(input: String): List<ConsoleCommandSuggestion> {
+        if (!input.startsWith("/")) return emptyList()
+
+        val query = input
+            .substring(1)
+            .trim()
+            .lowercase()
+        return availableCommands.filter { it.name.lowercase().startsWith(query) }
+    }
+
     private fun appendOutput(text: String) {
         consoleHistoryRepository.append(text)
     }
@@ -59,4 +86,9 @@ class ConsoleViewModel @Inject constructor(
 /** 控制台 UI 状态：输出条目列表，由 UI 负责拼接渲染 */
 data class ConsoleUiState(
     val entries: List<String> = emptyList(),
+)
+
+data class ConsoleCommandSuggestion(
+    val name: String,
+    val description: String,
 )

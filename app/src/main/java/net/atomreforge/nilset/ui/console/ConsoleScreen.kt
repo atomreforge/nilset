@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import net.atomreforge.nilset.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsoleScreen(
     viewModel: ConsoleViewModel = hiltViewModel(),
@@ -42,6 +47,8 @@ fun ConsoleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var commandInput by rememberSaveable { mutableStateOf("") }
+    var commandSuggestionsExpanded by rememberSaveable { mutableStateOf(false) }
+    val commandSuggestions = viewModel.commandSuggestionsFor(commandInput)
 
     Column(
         modifier = Modifier
@@ -91,14 +98,51 @@ fun ConsoleScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OutlinedTextField(
-                value = commandInput,
-                onValueChange = { commandInput = it },
-                label = { Text(stringResource(R.string.console_input_hint)) },
-                singleLine = true,
+            ExposedDropdownMenuBox(
+                expanded = commandSuggestionsExpanded && commandSuggestions.isNotEmpty(),
+                onExpandedChange = { commandSuggestionsExpanded = it },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
-            )
+            ) {
+                OutlinedTextField(
+                    value = commandInput,
+                    onValueChange = { input ->
+                        commandInput = input
+                        commandSuggestionsExpanded = input.startsWith("/")
+                    },
+                    label = { Text(stringResource(R.string.console_input_hint)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
+                    shape = MaterialTheme.shapes.medium,
+                )
+                ExposedDropdownMenu(
+                    expanded = commandSuggestionsExpanded && commandSuggestions.isNotEmpty(),
+                    onDismissRequest = { commandSuggestionsExpanded = false },
+                ) {
+                    commandSuggestions.forEach { suggestion ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(
+                                        text = "/${suggestion.name}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    Text(
+                                        text = suggestion.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            },
+                            onClick = {
+                                commandInput = "/${suggestion.name}"
+                                commandSuggestionsExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {

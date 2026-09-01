@@ -36,6 +36,9 @@ class NilSetCommandCenter(private val registry: CommandRegistry) {
     fun execute(input: String, context: CommandContext): String =
         dispatch(input, context)
 
+    /** 返回当前构建可用的指令，供输入补全展示 */
+    fun visibleCommands(): List<NilSetCommand> = registry.visibleCommands()
+
     private fun buildHelp(): String = buildString {
         appendLine("可用指令：")
         registry.visibleCommands().forEach { cmd ->

@@ -40,6 +40,7 @@ Data 层
 - 登录页和控制台页分别是 `LoginScreen`、`ConsoleScreen`。
 - 页面通过 `hiltViewModel()` 获取 ViewModel。
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
+- 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令候选，候选按字母序过滤。
 
 ### Data 层
 
@@ -81,6 +82,7 @@ Data 层
 - `/no:login`、`/clear:data` 只在 debug 构建可见且可执行。
 - `/cls` 清空控制台历史；`/clear:data` 清除本地会话数据，两者职责不同。
 - 控制台历史保存在 `ConsoleHistoryRepository` 进程内单例中，导航返回后仍可显示。
+- 输入 `/` 后展示当前构建可见的候选指令，继续输入会按指令名前缀过滤。
 
 ## 4. 目录映射
 
