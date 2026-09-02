@@ -32,7 +32,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import net.atomreforge.nilset.const.AppRoutes
+import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.ui.console.ConsoleScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
@@ -42,11 +44,14 @@ import net.atomreforge.nilset.ui.theme.ATOMTheme
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject
+    lateinit var appConfig: AppConfig
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ATOMTheme {
+            ATOMTheme(useDynamicColor = appConfig.theme.materialYou) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

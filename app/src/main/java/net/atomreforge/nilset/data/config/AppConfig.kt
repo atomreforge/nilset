@@ -8,6 +8,7 @@ data class AppConfig(
     val api: ApiConfig,
     val auth: AuthConfig = AuthConfig(),
     val log: LogConfig = LogConfig(),
+    val theme: ThemeConfig = ThemeConfig(),
 )
 
 @Serializable
@@ -36,4 +37,9 @@ data class AuthConfig(
 @Serializable
 data class LogConfig(
     val isHttpLoggingEnabled: Boolean = true,
+)
+
+@Serializable
+data class ThemeConfig(
+    val materialYou: Boolean = false,
 )

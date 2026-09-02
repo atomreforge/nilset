@@ -21,3 +21,7 @@ auth:
 
 log:
   isHttpLoggingEnabled: true
+
+theme:
+  # Android 12+ 使用系统壁纸动态取色；Android 10/11 保持内置深色主题
+  materialYou: false

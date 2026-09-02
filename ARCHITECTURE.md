@@ -10,7 +10,7 @@
 - DI 使用 Hilt，依赖入口统一在 `SingletonComponent`。
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
-- 主题由 `AppThemeConfig` 提供，当前默认深色配色和内置字体，后续可替换预设或配置。
+- 主题由 `AppThemeConfig` 提供，当前默认深色配色和内置字体；Android 12+ 可按配置启用 Material You 动态深色方案，后续可替换预设或配置。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。
 

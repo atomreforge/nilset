@@ -15,3 +15,6 @@ auth:
 
 log:
   isHttpLoggingEnabled: true
+
+theme:
+  materialYou: false
