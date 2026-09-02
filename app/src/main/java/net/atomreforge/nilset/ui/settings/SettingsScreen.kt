@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.core.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
+    val modeLabel = stringResource(
+        when (themeSettings.mode) {
+            ThemeMode.LIGHT -> R.string.theme_mode_light
+            ThemeMode.DARK -> R.string.theme_mode_dark
+            ThemeMode.DYNAMIC -> R.string.theme_mode_dynamic
+        },
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,9 +109,8 @@ fun SettingsScreen(
                             Text(
                                 text = buildString {
                                     append(themeSettings.palette.label)
-                                    if (themeSettings.isDynamic) {
-                                        append(" · Material You")
-                                    }
+                                    append(" · ")
+                                    append(modeLabel)
                                 },
                             )
                         },

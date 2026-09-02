@@ -40,8 +40,8 @@ class ThemeRepository @Inject constructor(
     private val dataStore = context.themeDataStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
-        mode = if (appConfig.theme.materialYou) ThemeMode.DYNAMIC else ThemeMode.STANDARD,
-        paletteId = ThemePreset.DEFAULT_DARK.id,
+        mode = if (appConfig.theme.materialYou) ThemeMode.DYNAMIC else ThemeMode.DARK,
+        paletteId = ThemePreset.DEFAULT.id,
     )
 
     val settings: StateFlow<UserThemeSettings> = dataStore.data
@@ -76,10 +76,16 @@ class ThemeRepository @Inject constructor(
 
     suspend fun selectPalette(paletteId: String) {
         update { current ->
-            val inheritedColors = current.customColors ?: current.effectiveColors()
+            val inheritedLight = current.customLightColors
+                ?: current.palette.lightColors
+                ?: UserThemeSettings.DEFAULT_LIGHT_COLORS
+            val inheritedDark = current.customDarkColors
+                ?: current.palette.darkColors
+                ?: UserThemeSettings.DEFAULT_DARK_COLORS
             current.copy(
                 paletteId = paletteId,
-                customColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedColors else current.customColors,
+                customLightColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedLight else current.customLightColors,
+                customDarkColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedDark else current.customDarkColors,
             )
         }
     }
@@ -88,12 +94,24 @@ class ThemeRepository @Inject constructor(
         update { it.copy(mode = mode) }
     }
 
-    suspend fun setCustomColors(colors: ThemeColors) {
-        update { it.copy(paletteId = ThemePreset.CUSTOM.id, customColors = colors) }
+    suspend fun setCustomColors(colors: ThemeColors, useDark: Boolean) {
+        update { current ->
+            current.copy(
+                paletteId = ThemePreset.CUSTOM.id,
+                customLightColors = if (useDark) current.customLightColors else colors,
+                customDarkColors = if (useDark) colors else current.customDarkColors,
+            )
+        }
     }
 
-    suspend fun resetCustomColors() {
-        update { it.copy(paletteId = ThemePreset.CUSTOM.id, customColors = UserThemeSettings.DEFAULT_COLORS) }
+    suspend fun resetCustomColors(useDark: Boolean) {
+        update { current ->
+            current.copy(
+                paletteId = ThemePreset.CUSTOM.id,
+                customLightColors = if (useDark) current.customLightColors else UserThemeSettings.DEFAULT_LIGHT_COLORS,
+                customDarkColors = if (useDark) UserThemeSettings.DEFAULT_DARK_COLORS else current.customDarkColors,
+            )
+        }
     }
 
     private suspend fun update(transform: (UserThemeSettings) -> UserThemeSettings) {

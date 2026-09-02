@@ -1,6 +1,7 @@
 package net.atomreforge.nilset.ui.theme
 
 import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -36,9 +37,10 @@ fun ATOMTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val useDarkTheme = isSystemInDarkTheme()
     val colorScheme = when {
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            dynamicDarkColorScheme(context)
+            if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         else -> config.colorScheme
     }
 
@@ -55,13 +57,14 @@ fun ATOMTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val useDarkTheme = settings.effectiveColors().backgroundColor().luminance() < 0.5f
+    val systemDarkTheme = isSystemInDarkTheme()
+    val useDarkTheme = settings.usesDarkTheme(systemDarkTheme)
     val colorScheme = when {
         settings.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             remember(context, useDarkTheme) {
                 if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
-        else -> remember(settings) { settings.toColorScheme() }
+        else -> remember(settings, useDarkTheme) { settings.toColorScheme(useDarkTheme) }
     }
 
     MaterialTheme(
@@ -71,15 +74,15 @@ fun ATOMTheme(
     )
 }
 
-private fun UserThemeSettings.toColorScheme(): ColorScheme {
-    val colors = effectiveColors()
+private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
+    val colors = effectiveColors(useDark)
     val background = colors.backgroundColor()
     val surface = colors.surfaceColor()
     val primary = colors.primaryColor()
     val secondary = colors.secondaryColor()
     val onBackground = background.contrastText()
     val onSurface = surface.contrastText()
-    val isDark = background.luminance() < 0.5f
+    val isDark = useDark
     val base = if (isDark) darkColorScheme() else lightColorScheme()
     val primaryContainer = primary.blend(surface, 0.72f)
     val secondaryContainer = secondary.blend(surface, 0.72f)

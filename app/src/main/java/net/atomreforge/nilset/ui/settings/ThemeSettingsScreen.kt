@@ -2,6 +2,7 @@ package net.atomreforge.nilset.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,8 @@ fun ThemeSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
+    val systemDarkTheme = isSystemInDarkTheme()
+    val useDarkTheme = settings.usesDarkTheme(systemDarkTheme)
 
     Scaffold(
         topBar = {
@@ -107,14 +110,20 @@ fun ThemeSettingsScreen(
             ThemePreset.entries.forEach { palette ->
                 ThemePaletteCard(
                     palette = palette,
+                    useDark = useDarkTheme,
                     isSelected = settings.palette == palette,
                     onClick = { viewModel.selectPalette(palette.id) },
                 )
                 if (palette == ThemePreset.CUSTOM && settings.palette == ThemePreset.CUSTOM) {
                     ThemeCustomColorEditor(
                         settings = settings,
-                        onSaveColors = viewModel::saveCustomColors,
-                        onResetColors = viewModel::resetCustomColors,
+                        useDark = useDarkTheme,
+                        onSaveColors = { values ->
+                            viewModel.saveCustomColors(values, useDarkTheme)
+                        },
+                        onResetColors = {
+                            viewModel.resetCustomColors(useDarkTheme)
+                        },
                     )
                 }
             }
@@ -128,7 +137,8 @@ private fun ThemeModeGroup(
     onModeChange: (ThemeMode) -> Unit,
 ) {
     val modes = listOf(
-        ThemeMode.STANDARD to stringResource(R.string.theme_mode_standard),
+        ThemeMode.LIGHT to stringResource(R.string.theme_mode_light),
+        ThemeMode.DARK to stringResource(R.string.theme_mode_dark),
         ThemeMode.DYNAMIC to stringResource(R.string.theme_mode_dynamic),
     )
 
@@ -167,6 +177,7 @@ private fun ThemeModeGroup(
 @Composable
 private fun ThemePaletteCard(
     palette: ThemePreset,
+    useDark: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -183,7 +194,14 @@ private fun ThemePaletteCard(
     ) {
         ListItem(
             headlineContent = { Text(palette.label) },
-            leadingContent = { ThemePalettePreview(palette) },
+            leadingContent = { ThemePalettePreview(palette, useDark) },
+            supportingContent = {
+                Text(
+                    text = stringResource(
+                        if (useDark) R.string.theme_palette_dark else R.string.theme_palette_light,
+                    ),
+                )
+            },
             trailingContent = {
                 if (isSelected) {
                     Text(
@@ -198,8 +216,11 @@ private fun ThemePaletteCard(
 }
 
 @Composable
-private fun ThemePalettePreview(palette: ThemePreset) {
-    val colors = palette.colors ?: UserThemeSettings.DEFAULT_COLORS
+private fun ThemePalettePreview(
+    palette: ThemePreset,
+    useDark: Boolean,
+) {
+    val colors = palette.colors(useDark) ?: UserThemeSettings.DEFAULT_DARK_COLORS
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         ThemeColorFields.ALL.forEach { field ->
             Box(
@@ -218,12 +239,17 @@ private fun ThemePalettePreview(palette: ThemePreset) {
 @Composable
 private fun ThemeCustomColorEditor(
     settings: UserThemeSettings,
+    useDark: Boolean,
     onSaveColors: (Map<String, String>) -> Unit,
     onResetColors: () -> Unit,
 ) {
-    var colorValues by remember(settings.customColors) {
+    var colorValues by remember(
+        settings.mode,
+        settings.customLightColors,
+        settings.customDarkColors,
+    ) {
         mutableStateOf(
-            settings.effectiveColors().let { colors ->
+            settings.effectiveColors(useDark).let { colors ->
                 ThemeColorFields.ALL.associateWith { field ->
                     colors.value(field).orEmpty()
                 }

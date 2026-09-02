@@ -19,10 +19,13 @@
     <string name="settings_theme">主题</string>
     <string name="theme_settings_title">主题设置</string>
     <string name="theme_mode">主题模式</string>
-    <string name="theme_mode_standard">标准配色</string>
+    <string name="theme_mode_light">浅色</string>
+    <string name="theme_mode_dark">深色</string>
     <string name="theme_mode_dynamic">Material You</string>
     <string name="theme_mode_dynamic_description">Android 12+ 跟随系统动态配色</string>
     <string name="theme_palette">主题配色</string>
+    <string name="theme_palette_light">当前显示浅色版本</string>
+    <string name="theme_palette_dark">当前显示深色版本</string>
     <string name="theme_custom_colors">自定义主要颜色</string>
     <string name="theme_save_colors">保存颜色</string>
     <string name="theme_reset_colors">还原默认色</string>

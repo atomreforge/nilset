@@ -28,18 +28,26 @@ data class ThemeColors(
 }
 
 enum class ThemeMode {
-    STANDARD,
+    LIGHT,
+    DARK,
     DYNAMIC,
 }
 
 enum class ThemePreset(
     val id: String,
     val label: String,
-    val colors: ThemeColors?,
+    val lightColors: ThemeColors?,
+    val darkColors: ThemeColors?,
 ) {
-    DEFAULT_DARK(
-        "default-dark",
-        "默认深色",
+    DEFAULT(
+        "default",
+        "默认",
+        ThemeColors(
+            primary = "#D87C5F",
+            secondary = "#7D5C4F",
+            background = "#F7F5F2",
+            surface = "#FFFFFF",
+        ),
         ThemeColors(
             primary = "#D87C5F",
             secondary = "#7D5C4F",
@@ -56,6 +64,12 @@ enum class ThemePreset(
             background = "#FFF8F5",
             surface = "#FFF8F5",
         ),
+        ThemeColors(
+            primary = "#D87C5F",
+            secondary = "#7D5C4F",
+            background = "#191210",
+            surface = "#231A16",
+        ),
     ),
     CHERRY(
         "cherry",
@@ -65,6 +79,12 @@ enum class ThemePreset(
             secondary = "#7A5A68",
             background = "#FFF8FA",
             surface = "#FFF8FA",
+        ),
+        ThemeColors(
+            primary = "#F5C2D7",
+            secondary = "#B39AA5",
+            background = "#201619",
+            surface = "#2A1E22",
         ),
     ),
     JADE(
@@ -76,30 +96,31 @@ enum class ThemePreset(
             background = "#F4FBFA",
             surface = "#F4FBFA",
         ),
-    ),
-    JADE_ORANGE(
-        "jade-orange",
-        "青橙",
         ThemeColors(
             primary = "#009999",
-            secondary = "#D87C5F",
-            background = "#F7F5F2",
-            surface = "#F7F5F2",
+            secondary = "#D8BAC6",
+            background = "#101C1A",
+            surface = "#182624",
         ),
     ),
-    CUSTOM("custom", "自定义主题", null);
+    CUSTOM("custom", "自定义主题", null, null);
+
+    fun colors(useDark: Boolean): ThemeColors? {
+        return if (useDark) darkColors else lightColors
+    }
 
     companion object {
         fun fromId(id: String): ThemePreset =
-            entries.firstOrNull { it.id == id } ?: DEFAULT_DARK
+            entries.firstOrNull { it.id == id } ?: DEFAULT
     }
 }
 
 @Serializable
 data class UserThemeSettings(
-    val mode: ThemeMode = ThemeMode.STANDARD,
-    val paletteId: String = ThemePreset.DEFAULT_DARK.id,
-    val customColors: ThemeColors? = null,
+    val mode: ThemeMode = ThemeMode.DARK,
+    val paletteId: String = ThemePreset.DEFAULT.id,
+    val customLightColors: ThemeColors? = null,
+    val customDarkColors: ThemeColors? = null,
 ) {
     val palette: ThemePreset
         get() = ThemePreset.fromId(paletteId)
@@ -107,16 +128,28 @@ data class UserThemeSettings(
     val isDynamic: Boolean
         get() = mode == ThemeMode.DYNAMIC
 
-    fun effectiveColors(): ThemeColors {
-        return if (palette == ThemePreset.CUSTOM) {
-            customColors ?: DEFAULT_COLORS
-        } else {
-            palette.colors ?: DEFAULT_COLORS
+    fun usesDarkTheme(systemDarkTheme: Boolean = false): Boolean {
+        return when (mode) {
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+            ThemeMode.DYNAMIC -> systemDarkTheme
         }
     }
 
+    fun effectiveColors(useDark: Boolean = usesDarkTheme()): ThemeColors {
+        if (palette == ThemePreset.CUSTOM) {
+            return if (useDark) {
+                customDarkColors ?: DEFAULT_DARK_COLORS
+            } else {
+                customLightColors ?: DEFAULT_LIGHT_COLORS
+            }
+        }
+        return palette.colors(useDark) ?: if (useDark) DEFAULT_DARK_COLORS else DEFAULT_LIGHT_COLORS
+    }
+
     companion object {
-        val DEFAULT_COLORS = ThemePreset.DEFAULT_DARK.colors!!
+        val DEFAULT_LIGHT_COLORS = ThemePreset.DEFAULT.lightColors!!
+        val DEFAULT_DARK_COLORS = ThemePreset.DEFAULT.darkColors!!
     }
 }
 

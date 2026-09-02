@@ -27,7 +27,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.setThemeMode(mode) }
     }
 
-    fun saveCustomColors(values: Map<String, String>) {
+    fun saveCustomColors(values: Map<String, String>, useDark: Boolean) {
         viewModelScope.launch {
             val colors = ThemeColorFields.ALL.mapNotNull { field ->
                 ThemeColorParser.normalize(values[field])?.let { normalized ->
@@ -36,17 +36,18 @@ class SettingsViewModel @Inject constructor(
             }.toMap()
 
             themeRepository.setCustomColors(
-                ThemeColors(
+                colors = ThemeColors(
                     primary = colors.getValue(ThemeColorFields.PRIMARY),
                     secondary = colors.getValue(ThemeColorFields.SECONDARY),
                     background = colors.getValue(ThemeColorFields.BACKGROUND),
                     surface = colors.getValue(ThemeColorFields.SURFACE),
                 ),
+                useDark = useDark,
             )
         }
     }
 
-    fun resetCustomColors() {
-        viewModelScope.launch { themeRepository.resetCustomColors() }
+    fun resetCustomColors(useDark: Boolean) {
+        viewModelScope.launch { themeRepository.resetCustomColors(useDark) }
     }
 }
