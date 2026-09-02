@@ -212,7 +212,7 @@ private fun ThemePaletteCard(
         color = if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
+            MaterialTheme.colorScheme.surfaceContainer
         },
     ) {
         Row(
