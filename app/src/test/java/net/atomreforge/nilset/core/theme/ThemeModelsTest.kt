@@ -12,26 +12,25 @@ class ThemeModelsTest {
             ThemePreset.MAPLE,
             ThemePreset.CHERRY,
             ThemePreset.JADE,
+            ThemePreset.DYNAMIC,
         )
 
-        assertEquals(presets, ThemePreset.entries.filterNot { it == ThemePreset.CUSTOM })
+        assertEquals(presets + ThemePreset.CUSTOM, ThemePreset.entries)
         assertEquals(ThemePreset.MAPLE.id, UserThemeSettings().paletteId)
-        presets.forEach { preset ->
+        presets.filterNot { it == ThemePreset.DYNAMIC }.forEach { preset ->
             assertEquals(preset.lightColors, preset.colors(false))
             assertEquals(preset.darkColors, preset.colors(true))
         }
     }
 
     @Test
-    fun `mode controls light dark and dynamic system behavior`() {
+    fun `mode controls light and dark source colors`() {
         val light = UserThemeSettings(mode = ThemeMode.LIGHT)
         val dark = UserThemeSettings(mode = ThemeMode.DARK)
-        val dynamic = UserThemeSettings(mode = ThemeMode.DYNAMIC)
 
-        assertEquals(false, light.usesDarkTheme(true))
-        assertEquals(true, dark.usesDarkTheme(false))
-        assertEquals(false, dynamic.usesDarkTheme(false))
-        assertEquals(true, dynamic.usesDarkTheme(true))
+        assertEquals(false, light.usesDarkTheme())
+        assertEquals(true, dark.usesDarkTheme())
+        assertEquals(true, UserThemeSettings(paletteId = ThemePreset.DYNAMIC.id).isDynamic)
     }
 
     @Test
@@ -67,7 +66,7 @@ class ThemeModelsTest {
     @Test
     fun `theme settings serialize and deserialize`() {
         val settings = UserThemeSettings(
-            mode = ThemeMode.DYNAMIC,
+            mode = ThemeMode.DARK,
             paletteId = ThemePreset.JADE.id,
             customLightColors = ThemeColors("#123456", "#654321", "#EEEEEE", "#FFFFFF"),
             customDarkColors = ThemeColors("#ABCDEF", "#123456", "#111111", "#222222"),

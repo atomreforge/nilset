@@ -30,7 +30,6 @@ data class ThemeColors(
 enum class ThemeMode {
     LIGHT,
     DARK,
-    DYNAMIC,
 }
 
 enum class ThemePreset(
@@ -87,7 +86,8 @@ enum class ThemePreset(
             surface = "#182624",
         ),
     ),
-    CUSTOM("custom", "自定义主题", null, null);
+    DYNAMIC("dynamic", "动态取色", null, null),
+    CUSTOM("custom", "自定义", null, null);
 
     fun colors(useDark: Boolean): ThemeColors? {
         return if (useDark) darkColors else lightColors
@@ -110,13 +110,12 @@ data class UserThemeSettings(
         get() = ThemePreset.fromId(paletteId)
 
     val isDynamic: Boolean
-        get() = mode == ThemeMode.DYNAMIC
+        get() = palette == ThemePreset.DYNAMIC
 
-    fun usesDarkTheme(systemDarkTheme: Boolean = false): Boolean {
+    fun usesDarkTheme(): Boolean {
         return when (mode) {
             ThemeMode.LIGHT -> false
             ThemeMode.DARK -> true
-            ThemeMode.DYNAMIC -> systemDarkTheme
         }
     }
 

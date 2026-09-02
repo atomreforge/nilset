@@ -1,5 +1,6 @@
 package net.atomreforge.nilset.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,7 +41,6 @@ fun SettingsScreen(
         when (themeSettings.mode) {
             ThemeMode.LIGHT -> R.string.theme_mode_light
             ThemeMode.DARK -> R.string.theme_mode_dark
-            ThemeMode.DYNAMIC -> R.string.theme_mode_dynamic
         },
     )
     Scaffold(
@@ -71,7 +71,8 @@ fun SettingsScreen(
         ) {
             Surface(
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 ListItem(
@@ -90,42 +91,36 @@ fun SettingsScreen(
                         .clickable(onClick = onOpenConsole),
                 )
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ListItem(
-                        headlineContent = {
-                            Text(stringResource(R.string.settings_theme))
-                        },
-                        supportingContent = {
-                            Text(
-                                text = buildString {
-                                    append(themeSettings.palette.label)
-                                    append(" · ")
-                                    append(modeLabel)
-                                },
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_theme),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onOpenThemeSettings),
-                    )
-                }
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.settings_theme))
+                    },
+                    supportingContent = {
+                        Text(
+                            text = buildString {
+                                append(themeSettings.palette.label)
+                                append(" · ")
+                                append(modeLabel)
+                            },
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_theme),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenThemeSettings),
+                )
             }
         }
     }

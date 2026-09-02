@@ -57,8 +57,7 @@ fun ATOMTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val systemDarkTheme = isSystemInDarkTheme()
-    val useDarkTheme = settings.usesDarkTheme(systemDarkTheme)
+    val useDarkTheme = settings.usesDarkTheme()
     val colorScheme = when {
         settings.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             remember(context, useDarkTheme) {
@@ -106,17 +105,17 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
         onBackground = onBackground,
         surface = surface,
         onSurface = onSurface,
-        surfaceVariant = surface.blend(onSurface, 0.12f),
+        surfaceVariant = surface.blend(onSurface, 0.16f),
         onSurfaceVariant = onSurface.blend(surface, 0.28f),
         surfaceDim = surface.blend(black, 0.08f),
         surfaceBright = surface.blend(if (isDark) onSurface else white, 0.08f),
-        surfaceContainerLowest = surface.blend(if (isDark) black else white, 0.04f),
-        surfaceContainerLow = surface.blend(if (isDark) black else onSurface, 0.06f),
-        surfaceContainer = surface.blend(onSurface, if (isDark) 0.14f else 0.10f),
-        surfaceContainerHigh = surface.blend(onSurface, 0.20f),
-        surfaceContainerHighest = surface.blend(onSurface, 0.26f),
+        surfaceContainerLowest = surface.blend(if (isDark) black else white, 0.08f),
+        surfaceContainerLow = surface.blend(onSurface, 0.14f),
+        surfaceContainer = surface.blend(onSurface, if (isDark) 0.20f else 0.18f),
+        surfaceContainerHigh = surface.blend(onSurface, if (isDark) 0.26f else 0.24f),
+        surfaceContainerHighest = surface.blend(onSurface, 0.32f),
         outline = surface.blend(onSurface, 0.48f),
-        outlineVariant = surface.blend(onSurface, 0.18f),
+        outlineVariant = surface.blend(onSurface, 0.24f),
         scrim = Color.Black,
         inverseSurface = onSurface,
         inverseOnSurface = surface,

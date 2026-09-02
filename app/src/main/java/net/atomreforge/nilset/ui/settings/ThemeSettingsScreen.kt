@@ -3,7 +3,6 @@ package net.atomreforge.nilset.ui.settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,8 +64,7 @@ fun ThemeSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
-    val systemDarkTheme = isSystemInDarkTheme()
-    val useDarkTheme = settings.usesDarkTheme(systemDarkTheme)
+    val useDarkTheme = settings.usesDarkTheme()
     var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
@@ -112,43 +110,41 @@ fun ThemeSettingsScreen(
                 onModeChange = viewModel::setThemeMode,
             )
 
-            if (!settings.isDynamic) {
-                Text(
-                    text = stringResource(R.string.theme_palette),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                ThemePreset.entries.chunked(2).forEach { rowPalettes ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        rowPalettes.forEach { palette ->
-                            ThemePaletteCard(
-                                palette = palette,
-                                useDark = useDarkTheme,
-                                isSelected = settings.palette == palette,
-                                onClick = { viewModel.selectPalette(palette.id) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (rowPalettes.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+            Text(
+                text = stringResource(R.string.theme_palette),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            ThemePreset.entries.chunked(2).forEach { rowPalettes ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    rowPalettes.forEach { palette ->
+                        ThemePaletteCard(
+                            palette = palette,
+                            useDark = useDarkTheme,
+                            isSelected = settings.palette == palette,
+                            onClick = { viewModel.selectPalette(palette.id) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (rowPalettes.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
+            }
 
-                if (settings.palette == ThemePreset.CUSTOM) {
-                    ThemeCustomColorEditor(
-                        settings = settings,
-                        useDark = useDarkTheme,
-                        onSaveColors = { values ->
-                            viewModel.saveCustomColors(values, useDarkTheme)
-                        },
-                        onResetColors = {
-                            viewModel.resetCustomColors(useDarkTheme)
-                        },
-                    )
-                }
+            if (settings.palette == ThemePreset.CUSTOM) {
+                ThemeCustomColorEditor(
+                    settings = settings,
+                    useDark = useDarkTheme,
+                    onSaveColors = { values ->
+                        viewModel.saveCustomColors(values, useDarkTheme)
+                    },
+                    onResetColors = {
+                        viewModel.resetCustomColors(useDarkTheme)
+                    },
+                )
             }
         }
     }
@@ -162,23 +158,19 @@ private fun ThemeModeGroup(
     val modes = listOf(
         ThemeMode.LIGHT to stringResource(R.string.theme_mode_light),
         ThemeMode.DARK to stringResource(R.string.theme_mode_dark),
-        ThemeMode.DYNAMIC to stringResource(R.string.theme_mode_dynamic),
     )
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column {
             modes.forEachIndexed { index, (mode, label) ->
                 ListItem(
                     headlineContent = { Text(label) },
-                    supportingContent = if (mode == ThemeMode.DYNAMIC) {
-                        { Text(stringResource(R.string.theme_mode_dynamic_description)) }
-                    } else {
-                        null
-                    },
+                    supportingContent = null,
                     trailingContent = {
                         RadioButton(
                             selected = settings.mode == mode,
@@ -220,7 +212,7 @@ private fun ThemePaletteCard(
         color = if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceContainer
+            MaterialTheme.colorScheme.surfaceContainerHigh
         },
     ) {
         Row(
@@ -251,17 +243,27 @@ private fun ThemePalettePreview(
     palette: ThemePreset,
     useDark: Boolean,
 ) {
-    val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
+    val swatches = if (palette == ThemePreset.DYNAMIC) {
+        listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.secondary,
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.surface,
+        )
+    } else {
+        val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
+        ThemeColorFields.ALL.mapNotNull { field ->
+            ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
+        }
+    }
+
     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        ThemeColorFields.ALL.forEach { field ->
+        swatches.forEach { color ->
             Box(
                 modifier = Modifier
                     .size(14.dp)
                     .clip(CircleShape)
-                    .background(
-                        ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
-                            ?: MaterialTheme.colorScheme.surfaceVariant,
-                    ),
+                    .background(color),
             )
         }
     }
@@ -294,7 +296,8 @@ private fun ThemeCustomColorEditor(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Column(
             modifier = Modifier

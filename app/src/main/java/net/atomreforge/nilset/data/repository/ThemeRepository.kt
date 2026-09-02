@@ -40,8 +40,12 @@ class ThemeRepository @Inject constructor(
     private val dataStore = context.themeDataStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
-        mode = if (appConfig.theme.materialYou) ThemeMode.DYNAMIC else ThemeMode.DARK,
-        paletteId = ThemePreset.MAPLE.id,
+        mode = ThemeMode.DARK,
+        paletteId = if (appConfig.theme.materialYou) {
+            ThemePreset.DYNAMIC.id
+        } else {
+            ThemePreset.MAPLE.id
+        },
     )
 
     val settings: StateFlow<UserThemeSettings> = dataStore.data
