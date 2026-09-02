@@ -1,7 +1,6 @@
 package net.atomreforge.nilset.ui.settings
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
@@ -70,8 +70,13 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
-                shape = MaterialTheme.shapes.medium,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                onClick = onOpenConsole,
+                shape = RoundedCornerShape(8.dp),
+                border = if (themeSettings.showCardBorders) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                } else {
+                    null
+                },
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -86,14 +91,16 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onOpenConsole),
                 )
             }
             Surface(
-                shape = MaterialTheme.shapes.medium,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                onClick = onOpenThemeSettings,
+                shape = RoundedCornerShape(8.dp),
+                border = if (themeSettings.showCardBorders) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                } else {
+                    null
+                },
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -117,9 +124,6 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onOpenThemeSettings),
                 )
             }
         }

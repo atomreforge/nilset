@@ -27,6 +27,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.setThemeMode(mode) }
     }
 
+    fun setCardBorders(enabled: Boolean) {
+        viewModelScope.launch { themeRepository.setCardBorders(enabled) }
+    }
+
     fun saveCustomColors(values: Map<String, String>, useDark: Boolean) {
         viewModelScope.launch {
             val colors = ThemeColorFields.ALL.mapNotNull { field ->

@@ -22,6 +22,7 @@
     <string name="theme_mode_light">浅色</string>
     <string name="theme_mode_dark">深色</string>
     <string name="theme_palette">主题配色</string>
+    <string name="theme_card_borders">卡片描边</string>
     <string name="theme_palette_light">当前显示浅色版本</string>
     <string name="theme_palette_dark">当前显示深色版本</string>
     <string name="theme_custom_colors">自定义主要颜色</string>

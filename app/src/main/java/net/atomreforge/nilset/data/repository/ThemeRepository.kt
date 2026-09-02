@@ -98,6 +98,10 @@ class ThemeRepository @Inject constructor(
         update { it.copy(mode = mode) }
     }
 
+    suspend fun setCardBorders(enabled: Boolean) {
+        update { it.copy(showCardBorders = enabled) }
+    }
+
     suspend fun setCustomColors(colors: ThemeColors, useDark: Boolean) {
         update { current ->
             current.copy(

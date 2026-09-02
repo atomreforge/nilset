@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -109,6 +111,10 @@ fun ThemeSettingsScreen(
                 settings = settings,
                 onModeChange = viewModel::setThemeMode,
             )
+            ThemeCardBorderToggle(
+                settings = settings,
+                onChange = viewModel::setCardBorders,
+            )
 
             Text(
                 text = stringResource(R.string.theme_palette),
@@ -124,6 +130,7 @@ fun ThemeSettingsScreen(
                             palette = palette,
                             useDark = useDarkTheme,
                             isSelected = settings.palette == palette,
+                            showBorder = settings.showCardBorders,
                             onClick = { viewModel.selectPalette(palette.id) },
                             modifier = Modifier.weight(1f),
                         )
@@ -138,6 +145,7 @@ fun ThemeSettingsScreen(
                 ThemeCustomColorEditor(
                     settings = settings,
                     useDark = useDarkTheme,
+                    showBorder = settings.showCardBorders,
                     onSaveColors = { values ->
                         viewModel.saveCustomColors(values, useDarkTheme)
                     },
@@ -162,9 +170,13 @@ private fun ThemeModeGroup(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        border = if (settings.showCardBorders) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
     ) {
         Column {
             modes.forEachIndexed { index, (mode, label) ->
@@ -190,29 +202,64 @@ private fun ThemeModeGroup(
 }
 
 @Composable
+private fun ThemeCardBorderToggle(
+    settings: UserThemeSettings,
+    onChange: (Boolean) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        border = if (settings.showCardBorders) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
+    ) {
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.theme_card_borders)) },
+            trailingContent = {
+                Switch(
+                    checked = settings.showCardBorders,
+                    onCheckedChange = onChange,
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onChange(!settings.showCardBorders) },
+        )
+    }
+}
+
+@Composable
 private fun ThemePaletteCard(
     palette: ThemePreset,
     useDark: Boolean,
     isSelected: Boolean,
+    showBorder: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
-            },
-        ),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        border = if (showBorder) {
+            BorderStroke(
+                width = 1.dp,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant
+                },
+            )
         } else {
-            MaterialTheme.colorScheme.surfaceContainer
+            null
+        },
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
+        } else {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.24f)
         },
     ) {
         Row(
@@ -243,18 +290,9 @@ private fun ThemePalettePreview(
     palette: ThemePreset,
     useDark: Boolean,
 ) {
-    val swatches = if (palette == ThemePreset.DYNAMIC) {
-        listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.secondary,
-            MaterialTheme.colorScheme.background,
-            MaterialTheme.colorScheme.surface,
-        )
-    } else {
-        val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
-        ThemeColorFields.ALL.mapNotNull { field ->
-            ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
-        }
+    val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
+    val swatches = ThemeColorFields.ALL.mapNotNull { field ->
+        ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -273,6 +311,7 @@ private fun ThemePalettePreview(
 private fun ThemeCustomColorEditor(
     settings: UserThemeSettings,
     useDark: Boolean,
+    showBorder: Boolean,
     onSaveColors: (Map<String, String>) -> Unit,
     onResetColors: () -> Unit,
 ) {
@@ -295,9 +334,13 @@ private fun ThemeCustomColorEditor(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(8.dp),
+        border = if (showBorder) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
     ) {
         Column(
             modifier = Modifier

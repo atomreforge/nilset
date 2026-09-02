@@ -45,7 +45,7 @@ enum class ThemePreset(
             primary = "#D87C5F",
             secondary = "#7D5C4F",
             background = "#FFF8F5",
-            surface = "#FFF8F5",
+            surface = "#FFEFE9",
         ),
         ThemeColors(
             primary = "#D87C5F",
@@ -61,7 +61,7 @@ enum class ThemePreset(
             primary = "#F5C2D7",
             secondary = "#7A5A68",
             background = "#FFF8FA",
-            surface = "#FFF8FA",
+            surface = "#FFEDF4",
         ),
         ThemeColors(
             primary = "#F5C2D7",
@@ -77,7 +77,7 @@ enum class ThemePreset(
             primary = "#009999",
             secondary = "#F5C2D7",
             background = "#F4FBFA",
-            surface = "#F4FBFA",
+            surface = "#E4F2F0",
         ),
         ThemeColors(
             primary = "#009999",
@@ -86,7 +86,22 @@ enum class ThemePreset(
             surface = "#182624",
         ),
     ),
-    DYNAMIC("dynamic", "动态取色", null, null),
+    DYNAMIC(
+        "dynamic",
+        "动态取色",
+        ThemeColors(
+            primary = "#6750A4",
+            secondary = "#625B71",
+            background = "#FFFBFE",
+            surface = "#F3EDF7",
+        ),
+        ThemeColors(
+            primary = "#D0BCFF",
+            secondary = "#CCC2DC",
+            background = "#141218",
+            surface = "#211F26",
+        ),
+    ),
     CUSTOM("custom", "自定义", null, null);
 
     fun colors(useDark: Boolean): ThemeColors? {
@@ -105,6 +120,7 @@ data class UserThemeSettings(
     val paletteId: String = ThemePreset.MAPLE.id,
     val customLightColors: ThemeColors? = null,
     val customDarkColors: ThemeColors? = null,
+    val showCardBorders: Boolean = true,
 ) {
     val palette: ThemePreset
         get() = ThemePreset.fromId(paletteId)

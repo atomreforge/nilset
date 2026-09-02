@@ -17,10 +17,14 @@ class ThemeModelsTest {
 
         assertEquals(presets + ThemePreset.CUSTOM, ThemePreset.entries)
         assertEquals(ThemePreset.MAPLE.id, UserThemeSettings().paletteId)
-        presets.filterNot { it == ThemePreset.DYNAMIC }.forEach { preset ->
+        presets.forEach { preset ->
             assertEquals(preset.lightColors, preset.colors(false))
             assertEquals(preset.darkColors, preset.colors(true))
+            listOf(preset.lightColors, preset.darkColors).forEach { colors ->
+                assertEquals(false, colors!!.background == colors.surface)
+            }
         }
+        assertEquals(true, UserThemeSettings().showCardBorders)
     }
 
     @Test
@@ -68,6 +72,7 @@ class ThemeModelsTest {
         val settings = UserThemeSettings(
             mode = ThemeMode.DARK,
             paletteId = ThemePreset.JADE.id,
+            showCardBorders = false,
             customLightColors = ThemeColors("#123456", "#654321", "#EEEEEE", "#FFFFFF"),
             customDarkColors = ThemeColors("#ABCDEF", "#123456", "#111111", "#222222"),
         )
