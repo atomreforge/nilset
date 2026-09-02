@@ -56,13 +56,21 @@ fun ConsoleScreen(
     }
     var commandSuggestionsExpanded by rememberSaveable { mutableStateOf(false) }
     val commandSuggestions = viewModel.commandSuggestionsFor(commandInput.text)
+    var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.console_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = {
+                            if (!isNavigatingBack) {
+                                isNavigatingBack = true
+                                onNavigateBack()
+                            }
+                        },
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_back),
                             contentDescription = stringResource(R.string.back),
