@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -51,6 +54,9 @@ import net.atomreforge.nilset.core.theme.ThemeColorParser
 import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
+import kotlinx.coroutines.delay
+
+private const val ThemeEntranceInputDelayMillis = 360L
 
 private val colorLabels = mapOf(
     ThemeColorFields.PRIMARY to "primary（主按钮 / 选中态）",
@@ -68,8 +74,15 @@ fun ThemeSettingsScreen(
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val useDarkTheme = settings.usesDarkTheme()
     var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
+    var isInputEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(ThemeEntranceInputDelayMillis)
+        isInputEnabled = true
+    }
 
     Scaffold(
+        modifier = Modifier.blockTouchWhileEntranceLocked(!isInputEnabled),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.theme_settings_title)) },
@@ -154,6 +167,17 @@ fun ThemeSettingsScreen(
                     },
                 )
             }
+        }
+    }
+}
+
+private fun Modifier.blockTouchWhileEntranceLocked(locked: Boolean): Modifier = pointerInput(locked) {
+    if (!locked) return@pointerInput
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(PointerEventPass.Initial)
+                .changes
+                .forEach { change -> change.consume() }
         }
     }
 }
