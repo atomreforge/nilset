@@ -70,4 +70,15 @@ class SettingsViewModel @Inject constructor(
     fun resetCustomColors(useDark: Boolean) {
         viewModelScope.launch { themeRepository.resetCustomColors(useDark) }
     }
+
+    fun saveCustomBackground(color: String, useDark: Boolean) {
+        val normalizedColor = ThemeColorParser.normalize(color) ?: return
+        viewModelScope.launch {
+            themeRepository.setCustomBackground(normalizedColor, useDark)
+        }
+    }
+
+    fun resetCustomBackground(useDark: Boolean) {
+        viewModelScope.launch { themeRepository.resetCustomBackground(useDark) }
+    }
 }

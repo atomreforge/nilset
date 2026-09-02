@@ -69,6 +69,24 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `custom background overrides only current mode background`() {
+        val settings = UserThemeSettings(
+            paletteId = ThemePreset.MAPLE.id,
+            customBackgroundLight = "#FFEEDD",
+            customBackgroundDark = "#001122",
+        )
+
+        assertEquals(
+            ThemePreset.MAPLE.lightColors!!.copy(background = "#FFEEDD"),
+            settings.effectiveColors(useDark = false),
+        )
+        assertEquals(
+            ThemePreset.MAPLE.darkColors!!.copy(background = "#001122"),
+            settings.effectiveColors(useDark = true),
+        )
+    }
+
+    @Test
     fun `scale settings apply only when enabled`() {
         val disabled = UserThemeSettings(
             textScaleEnabled = false,

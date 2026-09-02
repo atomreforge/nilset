@@ -136,6 +136,8 @@ data class UserThemeSettings(
     val paletteId: String = ThemePreset.MAPLE.id,
     val customLightColors: ThemeColors? = null,
     val customDarkColors: ThemeColors? = null,
+    val customBackgroundLight: String? = null,
+    val customBackgroundDark: String? = null,
     val showCardBorders: Boolean = true,
     val textScaleEnabled: Boolean = false,
     val textScale: Float = 1f,
@@ -162,14 +164,23 @@ data class UserThemeSettings(
     }
 
     fun effectiveColors(useDark: Boolean = usesDarkTheme()): ThemeColors {
-        if (palette == ThemePreset.CUSTOM) {
-            return if (useDark) {
+        val colors = if (palette == ThemePreset.CUSTOM) {
+            if (useDark) {
                 customDarkColors ?: FALLBACK_DARK_COLORS
             } else {
                 customLightColors ?: FALLBACK_LIGHT_COLORS
             }
+        } else {
+            palette.colors(useDark) ?: if (useDark) FALLBACK_DARK_COLORS else FALLBACK_LIGHT_COLORS
         }
-        return palette.colors(useDark) ?: if (useDark) FALLBACK_DARK_COLORS else FALLBACK_LIGHT_COLORS
+
+        val customBackground = if (useDark) customBackgroundDark else customBackgroundLight
+        val normalizedBackground = ThemeColorParser.normalize(customBackground)
+        return if (normalizedBackground == null) {
+            colors
+        } else {
+            colors.copy(background = normalizedBackground)
+        }
     }
 
     companion object {
