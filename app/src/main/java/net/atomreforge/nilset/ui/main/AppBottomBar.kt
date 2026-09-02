@@ -1,6 +1,7 @@
 package net.atomreforge.nilset.ui.main
 
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -18,7 +19,10 @@ fun AppBottomBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationBar(modifier = modifier) {
+    NavigationBar(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
         NavigationBarItem(
             selected = currentRoute == AppRoutes.Tab.HOME,
             onClick = { onNavigate(AppRoutes.Tab.HOME) },
