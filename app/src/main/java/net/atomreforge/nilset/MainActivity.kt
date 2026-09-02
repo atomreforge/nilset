@@ -36,6 +36,7 @@ import net.atomreforge.nilset.const.AppRoutes
 import net.atomreforge.nilset.ui.console.ConsoleScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
+import net.atomreforge.nilset.ui.settings.ThemeSettingsScreen
 import net.atomreforge.nilset.ui.session.SessionViewModel
 import net.atomreforge.nilset.ui.session.ThemeViewModel
 import net.atomreforge.nilset.ui.theme.ATOMTheme
@@ -97,6 +98,11 @@ class MainActivity : ComponentActivity() {
                                     },
                                 )
                             }
+                            composable(AppRoutes.THEME_SETTINGS) {
+                                ThemeSettingsScreen(
+                                    onNavigateBack = { navController.popBackStack() },
+                                )
+                            }
                             composable(AppRoutes.CONSOLE) {
                                 ConsoleScreen(onNavigateBack = { navController.popBackStack() })
                             }
@@ -110,6 +116,9 @@ class MainActivity : ComponentActivity() {
                                             }
                                             restoreState = true
                                         }
+                                    },
+                                    onOpenThemeSettings = {
+                                        navController.navigate(AppRoutes.THEME_SETTINGS)
                                     },
                                 )
                             }

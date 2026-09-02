@@ -18,9 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -34,10 +31,10 @@ import net.atomreforge.nilset.R
 @Composable
 fun SettingsScreen(
     onOpenConsole: () -> Unit,
+    onOpenThemeSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
-    var isThemeSheetOpen by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -103,11 +100,8 @@ fun SettingsScreen(
                         supportingContent = {
                             Text(
                                 text = buildString {
-                                    append(themeSettings.preset.label)
-                                    if (themeSettings.colorOverrides.isNotEmpty()) {
-                                        append(" · 自定义")
-                                    }
-                                    if (themeSettings.materialYou) {
+                                    append(themeSettings.palette.label)
+                                    if (themeSettings.isDynamic) {
                                         append(" · Material You")
                                     }
                                 },
@@ -122,21 +116,10 @@ fun SettingsScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isThemeSheetOpen = true },
+                            .clickable(onClick = onOpenThemeSettings),
                     )
                 }
             }
         }
-    }
-
-    if (isThemeSheetOpen) {
-        ThemeSettingsSheet(
-            settings = themeSettings,
-            onSelectPreset = viewModel::selectPreset,
-            onMaterialYouChange = viewModel::setMaterialYou,
-            onSaveColors = viewModel::saveColorOverrides,
-            onClearColors = viewModel::clearColorOverrides,
-            onDismiss = { isThemeSheetOpen = false },
-        )
     }
 }

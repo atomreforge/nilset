@@ -1,17 +1,20 @@
 package net.atomreforge.nilset.ui.theme
 
 import android.os.Build
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import net.atomreforge.nilset.core.theme.ThemeColorFields
 import net.atomreforge.nilset.core.theme.ThemeColorParser
+import net.atomreforge.nilset.core.theme.ThemeColors
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 
 fun defaultDarkColorScheme() = darkColorScheme(
@@ -33,10 +36,10 @@ fun ATOMTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colorScheme = if (useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        remember(context) { dynamicDarkColorScheme(context) }
-    } else {
-        config.colorScheme
+    val colorScheme = when {
+        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            dynamicDarkColorScheme(context)
+        else -> config.colorScheme
     }
 
     MaterialTheme(
@@ -52,10 +55,13 @@ fun ATOMTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colorScheme = if (settings.materialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        remember(context) { dynamicDarkColorScheme(context) }
-    } else {
-        remember(settings) { settings.toColorScheme() }
+    val useDarkTheme = settings.effectiveColors().backgroundColor().luminance() < 0.5f
+    val colorScheme = when {
+        settings.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            remember(context, useDarkTheme) {
+                if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
+        else -> remember(settings) { settings.toColorScheme() }
     }
 
     MaterialTheme(
@@ -66,42 +72,80 @@ fun ATOMTheme(
 }
 
 private fun UserThemeSettings.toColorScheme(): ColorScheme {
-    val base = if (preset.colors == null) defaultDarkColorScheme() else lightColorScheme()
-    val presetColors = preset.colors
+    val colors = effectiveColors()
+    val background = colors.backgroundColor()
+    val surface = colors.surfaceColor()
+    val primary = colors.primaryColor()
+    val secondary = colors.secondaryColor()
+    val onBackground = background.contrastText()
+    val onSurface = surface.contrastText()
+    val isDark = background.luminance() < 0.5f
+    val base = if (isDark) darkColorScheme() else lightColorScheme()
+    val primaryContainer = primary.blend(surface, 0.72f)
+    val secondaryContainer = secondary.blend(surface, 0.72f)
+    val black = Color.Black
+    val white = Color.White
 
     return base.copy(
-        primary = color(ThemeColorFields.PRIMARY, presetColors?.primary, base.primary),
-        onPrimary = color(ThemeColorFields.ON_PRIMARY, presetColors?.onPrimary, base.onPrimary),
-        primaryContainer = color(ThemeColorFields.PRIMARY_CONTAINER, presetColors?.primaryContainer, base.primaryContainer),
-        onPrimaryContainer = color(ThemeColorFields.ON_PRIMARY_CONTAINER, presetColors?.onPrimaryContainer, base.onPrimaryContainer),
-        secondary = color(ThemeColorFields.SECONDARY, presetColors?.secondary, base.secondary),
-        onSecondary = color(ThemeColorFields.ON_SECONDARY, presetColors?.onSecondary, base.onSecondary),
-        secondaryContainer = color(ThemeColorFields.SECONDARY_CONTAINER, presetColors?.secondaryContainer, base.secondaryContainer),
-        onSecondaryContainer = color(ThemeColorFields.ON_SECONDARY_CONTAINER, presetColors?.onSecondaryContainer, base.onSecondaryContainer),
-        tertiary = color(ThemeColorFields.TERTIARY, presetColors?.tertiary, base.tertiary),
-        onTertiary = color(ThemeColorFields.ON_TERTIARY, presetColors?.onTertiary, base.onTertiary),
-        tertiaryContainer = color(ThemeColorFields.TERTIARY_CONTAINER, presetColors?.tertiaryContainer, base.tertiaryContainer),
-        onTertiaryContainer = color(ThemeColorFields.ON_TERTIARY_CONTAINER, presetColors?.onTertiaryContainer, base.onTertiaryContainer),
-        background = color(ThemeColorFields.BACKGROUND, presetColors?.background, base.background),
-        onBackground = color(ThemeColorFields.ON_BACKGROUND, presetColors?.onBackground, base.onBackground),
-        surface = color(ThemeColorFields.SURFACE, presetColors?.surface, base.surface),
-        onSurface = color(ThemeColorFields.ON_SURFACE, presetColors?.onSurface, base.onSurface),
-        surfaceVariant = color(ThemeColorFields.SURFACE_VARIANT, presetColors?.surfaceVariant, base.surfaceVariant),
-        onSurfaceVariant = color(ThemeColorFields.ON_SURFACE_VARIANT, presetColors?.onSurfaceVariant, base.onSurfaceVariant),
-        outline = color(ThemeColorFields.OUTLINE, presetColors?.outline, base.outline),
-        error = color(ThemeColorFields.ERROR, presetColors?.error, base.error),
-        onError = color(ThemeColorFields.ON_ERROR, presetColors?.onError, base.onError),
+        primary = primary,
+        onPrimary = primary.contrastText(),
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = primaryContainer.contrastText(),
+        secondary = secondary,
+        onSecondary = secondary.contrastText(),
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = secondaryContainer.contrastText(),
+        tertiary = secondary,
+        onTertiary = secondary.contrastText(),
+        tertiaryContainer = secondaryContainer,
+        onTertiaryContainer = secondaryContainer.contrastText(),
+        background = background,
+        onBackground = onBackground,
+        surface = surface,
+        onSurface = onSurface,
+        surfaceVariant = surface.blend(onSurface, 0.12f),
+        onSurfaceVariant = onSurface.blend(surface, 0.28f),
+        surfaceDim = surface.blend(black, 0.08f),
+        surfaceBright = surface.blend(if (isDark) onSurface else white, 0.08f),
+        surfaceContainerLowest = surface.blend(if (isDark) black else white, 0.04f),
+        surfaceContainerLow = surface.blend(if (isDark) black else onSurface, 0.06f),
+        surfaceContainer = surface.blend(onSurface, if (isDark) 0.14f else 0.10f),
+        surfaceContainerHigh = surface.blend(onSurface, 0.20f),
+        surfaceContainerHighest = surface.blend(onSurface, 0.26f),
+        outline = surface.blend(onSurface, 0.48f),
+        outlineVariant = surface.blend(onSurface, 0.18f),
+        scrim = onSurface,
+        inverseSurface = onSurface,
+        inverseOnSurface = surface,
+        inversePrimary = primary.blend(background, 0.8f),
     )
 }
 
-private fun UserThemeSettings.color(
-    field: String,
-    presetValue: String?,
-    baseValue: Color,
-): Color {
-    val argb = ThemeColorParser.parseArgb(resolvedColors()[field])
-        ?: ThemeColorParser.parseArgb(presetValue)
-        ?: return baseValue
+private fun ThemeColors.color(field: String): Color {
+    val normalized = ThemeColorParser.normalize(value(field))
+    val argb = ThemeColorParser.parseArgb(normalized)
+    return argb?.let(::Color) ?: Color(0xFF16161E)
+}
 
-    return Color(argb)
+private fun ThemeColors.primaryColor() = color(ThemeColorFields.PRIMARY)
+
+private fun ThemeColors.secondaryColor() = color(ThemeColorFields.SECONDARY)
+
+private fun ThemeColors.backgroundColor() = color(ThemeColorFields.BACKGROUND)
+
+private fun ThemeColors.surfaceColor() = color(ThemeColorFields.SURFACE)
+
+private fun Color.blend(other: Color, fraction: Float): Color {
+    val source = copy(alpha = 1f)
+    val target = other.copy(alpha = 1f)
+    return Color(
+        red = source.red + (target.red - source.red) * fraction,
+        green = source.green + (target.green - source.green) * fraction,
+        blue = source.blue + (target.blue - source.blue) * fraction,
+        alpha = 1f,
+    )
+}
+
+private fun Color.contrastText(): Color {
+    return if (luminance() > 0.5f) Color(0xFF241915) else Color.White
 }

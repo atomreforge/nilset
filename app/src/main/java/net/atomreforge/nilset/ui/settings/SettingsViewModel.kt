@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import net.atomreforge.nilset.core.theme.ThemeColorFields
 import net.atomreforge.nilset.core.theme.ThemeColorParser
+import net.atomreforge.nilset.core.theme.ThemeColors
+import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 import net.atomreforge.nilset.data.repository.ThemeRepository
 import javax.inject.Inject
@@ -16,23 +19,34 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
     val themeSettings: StateFlow<UserThemeSettings> = themeRepository.settings
 
-    fun selectPreset(presetId: String) {
-        viewModelScope.launch { themeRepository.selectPreset(presetId) }
+    fun selectPalette(paletteId: String) {
+        viewModelScope.launch { themeRepository.selectPalette(paletteId) }
     }
 
-    fun setMaterialYou(enabled: Boolean) {
-        viewModelScope.launch { themeRepository.setMaterialYou(enabled) }
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { themeRepository.setThemeMode(mode) }
     }
 
-    fun saveColorOverrides(overrides: Map<String, String>) {
+    fun saveCustomColors(values: Map<String, String>) {
         viewModelScope.launch {
-            themeRepository.setColorOverrides(overrides.filterValues { value ->
-                ThemeColorParser.normalize(value) != null
-            })
+            val colors = ThemeColorFields.ALL.mapNotNull { field ->
+                ThemeColorParser.normalize(values[field])?.let { normalized ->
+                    field to normalized
+                }
+            }.toMap()
+
+            themeRepository.setCustomColors(
+                ThemeColors(
+                    primary = colors.getValue(ThemeColorFields.PRIMARY),
+                    secondary = colors.getValue(ThemeColorFields.SECONDARY),
+                    background = colors.getValue(ThemeColorFields.BACKGROUND),
+                    surface = colors.getValue(ThemeColorFields.SURFACE),
+                ),
+            )
         }
     }
 
-    fun clearColorOverrides() {
-        viewModelScope.launch { themeRepository.clearColorOverrides() }
+    fun resetCustomColors() {
+        viewModelScope.launch { themeRepository.resetCustomColors() }
     }
 }

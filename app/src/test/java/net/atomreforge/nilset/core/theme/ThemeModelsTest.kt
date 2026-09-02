@@ -7,43 +7,23 @@ import org.junit.Test
 class ThemeModelsTest {
 
     @Test
-    fun `preset colors match approved values`() {
-        assertEquals("#D87C5F", ThemePreset.MAPLE.colors?.primary)
-        assertEquals("#FFFFFF", ThemePreset.MAPLE.colors?.onPrimary)
-        assertEquals("#FFDBCF", ThemePreset.MAPLE.colors?.primaryContainer)
-        assertEquals("#5C1300", ThemePreset.MAPLE.colors?.onPrimaryContainer)
-        assertEquals("#7D5C4F", ThemePreset.MAPLE.colors?.secondary)
-        assertEquals("#FFDBCF", ThemePreset.MAPLE.colors?.secondaryContainer)
-        assertEquals("#FFF8F5", ThemePreset.MAPLE.colors?.background)
-        assertEquals("#241915", ThemePreset.MAPLE.colors?.onBackground)
-        assertEquals("#FFF8F5", ThemePreset.MAPLE.colors?.surface)
-        assertEquals("#241915", ThemePreset.MAPLE.colors?.onSurface)
-
-        assertEquals("#F5C2D7", ThemePreset.CHERRY.colors?.primary)
-        assertEquals("#3E1A2C", ThemePreset.CHERRY.colors?.onPrimary)
-        assertEquals("#FFD9E8", ThemePreset.CHERRY.colors?.primaryContainer)
-        assertEquals("#3E1A2C", ThemePreset.CHERRY.colors?.onPrimaryContainer)
-        assertEquals("#7A5A68", ThemePreset.CHERRY.colors?.secondary)
-        assertEquals("#FFD9E8", ThemePreset.CHERRY.colors?.secondaryContainer)
-        assertEquals("#FFF8FA", ThemePreset.CHERRY.colors?.background)
-        assertEquals("#2A1A20", ThemePreset.CHERRY.colors?.onBackground)
-
-        assertEquals("#009999", ThemePreset.JADE.colors?.primary)
-        assertEquals("#FFFFFF", ThemePreset.JADE.colors?.onPrimary)
-        assertEquals("#003737", ThemePreset.JADE.colors?.primaryContainer)
-        assertEquals("#B2FFFF", ThemePreset.JADE.colors?.onPrimaryContainer)
-        assertEquals("#F5C2D7", ThemePreset.JADE.colors?.secondary)
-        assertEquals("#F4FBFA", ThemePreset.JADE.colors?.background)
-        assertEquals("#14201E", ThemePreset.JADE.colors?.onBackground)
-
-        assertEquals("#009999", ThemePreset.JADE_ORANGE.colors?.primary)
-        assertEquals("#FFFFFF", ThemePreset.JADE_ORANGE.colors?.onPrimary)
-        assertEquals("#FFDBCF", ThemePreset.JADE_ORANGE.colors?.primaryContainer)
-        assertEquals("#5C1300", ThemePreset.JADE_ORANGE.colors?.onPrimaryContainer)
-        assertEquals("#D87C5F", ThemePreset.JADE_ORANGE.colors?.secondary)
-        assertEquals("#F5C2D7", ThemePreset.JADE_ORANGE.colors?.tertiary)
-        assertEquals("#F7F5F2", ThemePreset.JADE_ORANGE.colors?.background)
-        assertEquals("#1F1A17", ThemePreset.JADE_ORANGE.colors?.onBackground)
+    fun `preset colors contain four approved source colors`() {
+        assertEquals(
+            ThemeColors("#D87C5F", "#7D5C4F", "#FFF8F5", "#FFF8F5"),
+            ThemePreset.MAPLE.colors,
+        )
+        assertEquals(
+            ThemeColors("#F5C2D7", "#7A5A68", "#FFF8FA", "#FFF8FA"),
+            ThemePreset.CHERRY.colors,
+        )
+        assertEquals(
+            ThemeColors("#009999", "#F5C2D7", "#F4FBFA", "#F4FBFA"),
+            ThemePreset.JADE.colors,
+        )
+        assertEquals(
+            ThemeColors("#009999", "#D87C5F", "#F7F5F2", "#F7F5F2"),
+            ThemePreset.JADE_ORANGE.colors,
+        )
     }
 
     @Test
@@ -55,22 +35,29 @@ class ThemeModelsTest {
     }
 
     @Test
-    fun `color overrides take precedence over preset`() {
+    fun `custom colors take precedence over source palette`() {
+        val customColors = ThemeColors("#123456", "#654321", "#111111", "#222222")
         val settings = UserThemeSettings(
-            presetId = ThemePreset.CHERRY.id,
-            colorOverrides = mapOf(ThemeColorFields.PRIMARY to "#123456"),
+            paletteId = ThemePreset.CUSTOM.id,
+            customColors = customColors,
         )
 
-        assertEquals("#123456", settings.resolvedColors()[ThemeColorFields.PRIMARY])
-        assertEquals("#3E1A2C", settings.resolvedColors()[ThemeColorFields.ON_PRIMARY])
+        assertEquals(customColors, settings.effectiveColors())
+    }
+
+    @Test
+    fun `preset resolves source colors`() {
+        val settings = UserThemeSettings(paletteId = ThemePreset.JADE.id)
+
+        assertEquals(ThemePreset.JADE.colors, settings.effectiveColors())
     }
 
     @Test
     fun `theme settings serialize and deserialize`() {
         val settings = UserThemeSettings(
-            presetId = ThemePreset.JADE.id,
-            materialYou = true,
-            colorOverrides = mapOf(ThemeColorFields.PRIMARY to "#123456"),
+            mode = ThemeMode.DYNAMIC,
+            paletteId = ThemePreset.JADE.id,
+            customColors = ThemeColors("#123456", "#654321", "#111111", "#222222"),
         )
         val serialized = Json.encodeToString(UserThemeSettings.serializer(), settings)
 

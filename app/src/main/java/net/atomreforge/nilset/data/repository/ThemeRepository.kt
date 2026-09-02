@@ -19,6 +19,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
 import net.atomreforge.nilset.const.ThemeStoreKeys
+import net.atomreforge.nilset.core.theme.ThemeColors
+import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 import net.atomreforge.nilset.data.config.AppConfig
@@ -38,8 +40,8 @@ class ThemeRepository @Inject constructor(
     private val dataStore = context.themeDataStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
-        presetId = ThemePreset.DEFAULT_DARK.id,
-        materialYou = appConfig.theme.materialYou,
+        mode = if (appConfig.theme.materialYou) ThemeMode.DYNAMIC else ThemeMode.STANDARD,
+        paletteId = ThemePreset.DEFAULT_DARK.id,
     )
 
     val settings: StateFlow<UserThemeSettings> = dataStore.data
@@ -72,20 +74,26 @@ class ThemeRepository @Inject constructor(
             initialValue = false,
         )
 
-    suspend fun selectPreset(presetId: String) {
-        update { it.copy(presetId = presetId) }
+    suspend fun selectPalette(paletteId: String) {
+        update { current ->
+            val inheritedColors = current.customColors ?: current.effectiveColors()
+            current.copy(
+                paletteId = paletteId,
+                customColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedColors else current.customColors,
+            )
+        }
     }
 
-    suspend fun setMaterialYou(enabled: Boolean) {
-        update { it.copy(materialYou = enabled) }
+    suspend fun setThemeMode(mode: ThemeMode) {
+        update { it.copy(mode = mode) }
     }
 
-    suspend fun setColorOverrides(overrides: Map<String, String>) {
-        update { it.copy(colorOverrides = overrides) }
+    suspend fun setCustomColors(colors: ThemeColors) {
+        update { it.copy(paletteId = ThemePreset.CUSTOM.id, customColors = colors) }
     }
 
-    suspend fun clearColorOverrides() {
-        update { it.copy(colorOverrides = emptyMap()) }
+    suspend fun resetCustomColors() {
+        update { it.copy(paletteId = ThemePreset.CUSTOM.id, customColors = UserThemeSettings.DEFAULT_COLORS) }
     }
 
     private suspend fun update(transform: (UserThemeSettings) -> UserThemeSettings) {

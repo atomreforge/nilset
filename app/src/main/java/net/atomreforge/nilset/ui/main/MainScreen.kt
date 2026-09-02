@@ -31,6 +31,7 @@ private fun routePage(route: String) = if (route == AppRoutes.Tab.SETTINGS) 1 el
 @Composable
 fun MainScreen(
     onOpenConsole: () -> Unit,
+    onOpenThemeSettings: () -> Unit,
 ) {
     var selectedRoute by rememberSaveable { mutableStateOf(AppRoutes.Tab.HOME) }
     val targetPage = routePage(selectedRoute)
@@ -71,6 +72,7 @@ fun MainScreen(
             ) {
                 SettingsScreen(
                     onOpenConsole = onOpenConsole,
+                    onOpenThemeSettings = onOpenThemeSettings,
                 )
             }
         }

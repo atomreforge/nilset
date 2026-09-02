@@ -10,9 +10,9 @@
 - DI 使用 Hilt，依赖入口统一在 `SingletonComponent`。
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
-- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；内置默认深色、枫糖、落樱、青碧和青橙预设。
-- 设置页主题面板可选择预设、开关 Android 12+ Material You，并以 `#RRGGBB` 覆盖全部主要颜色；非法 HEX 不会被应用。
-- `ATOMTheme` 将用户设置映射为 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
+- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；内置默认深色、枫糖、落樱、青碧、青橙和自定义配色。
+- 独立 `theme_settings` 页面将主题模式与主题配色分离；Material You 使用模式开关表达，自定义配色只在选中自定义主题后展开。
+- 每个配色方案只暴露 `primary`、`secondary`、`background` 和 `surface` 四个来源色；`ATOMTheme` 依据明暗关系派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。
 
