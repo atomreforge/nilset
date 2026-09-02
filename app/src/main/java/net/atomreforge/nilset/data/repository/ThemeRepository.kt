@@ -80,17 +80,7 @@ class ThemeRepository @Inject constructor(
 
     suspend fun selectPalette(paletteId: String) {
         update { current ->
-            val inheritedLight = current.customLightColors
-                ?: current.palette.lightColors
-                ?: UserThemeSettings.FALLBACK_LIGHT_COLORS
-            val inheritedDark = current.customDarkColors
-                ?: current.palette.darkColors
-                ?: UserThemeSettings.FALLBACK_DARK_COLORS
-            current.copy(
-                paletteId = paletteId,
-                customLightColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedLight else current.customLightColors,
-                customDarkColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedDark else current.customDarkColors,
-            )
+            current.copy(paletteId = paletteId)
         }
     }
 

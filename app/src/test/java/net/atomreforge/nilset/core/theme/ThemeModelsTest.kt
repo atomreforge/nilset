@@ -60,6 +60,14 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `custom theme defaults to maple source colors`() {
+        val settings = UserThemeSettings(paletteId = ThemePreset.CUSTOM.id)
+
+        assertEquals(ThemePreset.MAPLE.lightColors, settings.effectiveColors(useDark = false))
+        assertEquals(ThemePreset.MAPLE.darkColors, settings.effectiveColors(useDark = true))
+    }
+
+    @Test
     fun `preset resolves source colors by mode`() {
         val settings = UserThemeSettings(paletteId = ThemePreset.JADE.id)
 
