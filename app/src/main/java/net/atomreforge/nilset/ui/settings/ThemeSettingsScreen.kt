@@ -133,35 +133,6 @@ fun ThemeSettingsScreen(
             )
 
             Text(
-                text = stringResource(R.string.theme_display_scaling),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            ThemeScaleControl(
-                title = stringResource(R.string.theme_text_scale),
-                checked = settings.textScaleEnabled,
-                scale = settings.textScale,
-                showBorder = settings.showCardBorders,
-                onCheckedChange = viewModel::setTextScaleEnabled,
-                onScaleChange = viewModel::setTextScale,
-                onReset = {
-                    viewModel.setTextScaleEnabled(false)
-                    viewModel.setTextScale(UserThemeSettings.DEFAULT_SCALE)
-                },
-            )
-            ThemeScaleControl(
-                title = stringResource(R.string.theme_ui_scale),
-                checked = settings.uiScaleEnabled,
-                scale = settings.uiScale,
-                showBorder = settings.showCardBorders,
-                onCheckedChange = viewModel::setUiScaleEnabled,
-                onScaleChange = viewModel::setUiScale,
-                onReset = {
-                    viewModel.setUiScaleEnabled(false)
-                    viewModel.setUiScale(UserThemeSettings.DEFAULT_SCALE)
-                },
-            )
-
-            Text(
                 text = stringResource(R.string.theme_palette),
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -204,6 +175,35 @@ fun ThemeSettingsScreen(
                     },
                 )
             }
+
+            Text(
+                text = stringResource(R.string.theme_display_scaling),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            ThemeScaleControl(
+                title = stringResource(R.string.theme_text_scale),
+                checked = settings.textScaleEnabled,
+                scale = settings.textScale,
+                showBorder = settings.showCardBorders,
+                onCheckedChange = viewModel::setTextScaleEnabled,
+                onScaleChange = viewModel::setTextScale,
+                onReset = {
+                    viewModel.setTextScaleEnabled(false)
+                    viewModel.setTextScale(UserThemeSettings.DEFAULT_SCALE)
+                },
+            )
+            ThemeScaleControl(
+                title = stringResource(R.string.theme_ui_scale),
+                checked = settings.uiScaleEnabled,
+                scale = settings.uiScale,
+                showBorder = settings.showCardBorders,
+                onCheckedChange = viewModel::setUiScaleEnabled,
+                onScaleChange = viewModel::setUiScale,
+                onReset = {
+                    viewModel.setUiScaleEnabled(false)
+                    viewModel.setUiScale(UserThemeSettings.DEFAULT_SCALE)
+                },
+            )
         }
     }
 }
@@ -362,7 +362,9 @@ private fun ThemeScaleControl(
                 value = sliderValue,
                 onValueChange = { value ->
                     sliderValue = value
-                    onScaleChange(value)
+                },
+                onValueChangeFinished = {
+                    onScaleChange(sliderValue)
                 },
                 valueRange = UserThemeSettings.MIN_SCALE..UserThemeSettings.MAX_SCALE,
                 enabled = checked,
