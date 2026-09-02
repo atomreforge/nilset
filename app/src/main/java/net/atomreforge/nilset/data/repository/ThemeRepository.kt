@@ -92,6 +92,36 @@ class ThemeRepository @Inject constructor(
         update { it.copy(showCardBorders = enabled) }
     }
 
+    suspend fun setTextScaleEnabled(enabled: Boolean) {
+        update { it.copy(textScaleEnabled = enabled) }
+    }
+
+    suspend fun setTextScale(scale: Float) {
+        update {
+            it.copy(
+                textScale = scale.coerceIn(
+                    UserThemeSettings.MIN_SCALE,
+                    UserThemeSettings.MAX_SCALE,
+                ),
+            )
+        }
+    }
+
+    suspend fun setUiScaleEnabled(enabled: Boolean) {
+        update { it.copy(uiScaleEnabled = enabled) }
+    }
+
+    suspend fun setUiScale(scale: Float) {
+        update {
+            it.copy(
+                uiScale = scale.coerceIn(
+                    UserThemeSettings.MIN_SCALE,
+                    UserThemeSettings.MAX_SCALE,
+                ),
+            )
+        }
+    }
+
     suspend fun setCustomColors(colors: ThemeColors, useDark: Boolean) {
         update { current ->
             current.copy(

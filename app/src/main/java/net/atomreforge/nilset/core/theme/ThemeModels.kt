@@ -121,12 +121,22 @@ data class UserThemeSettings(
     val customLightColors: ThemeColors? = null,
     val customDarkColors: ThemeColors? = null,
     val showCardBorders: Boolean = true,
+    val textScaleEnabled: Boolean = false,
+    val textScale: Float = 1f,
+    val uiScaleEnabled: Boolean = false,
+    val uiScale: Float = 1f,
 ) {
     val palette: ThemePreset
         get() = ThemePreset.fromId(paletteId)
 
     val isDynamic: Boolean
         get() = palette == ThemePreset.DYNAMIC
+
+    val effectiveTextScale: Float
+        get() = if (textScaleEnabled) textScale.coerceIn(MIN_SCALE, MAX_SCALE) else 1f
+
+    val effectiveUiScale: Float
+        get() = if (uiScaleEnabled) uiScale.coerceIn(MIN_SCALE, MAX_SCALE) else 1f
 
     fun usesDarkTheme(): Boolean {
         return when (mode) {
@@ -147,6 +157,9 @@ data class UserThemeSettings(
     }
 
     companion object {
+        const val MIN_SCALE = 0.8f
+        const val MAX_SCALE = 1.2f
+        const val DEFAULT_SCALE = 1f
         val FALLBACK_LIGHT_COLORS = ThemePreset.MAPLE.lightColors!!
         val FALLBACK_DARK_COLORS = ThemePreset.MAPLE.darkColors!!
     }

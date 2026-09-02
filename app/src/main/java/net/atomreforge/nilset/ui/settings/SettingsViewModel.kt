@@ -31,6 +31,22 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.setCardBorders(enabled) }
     }
 
+    fun setTextScaleEnabled(enabled: Boolean) {
+        viewModelScope.launch { themeRepository.setTextScaleEnabled(enabled) }
+    }
+
+    fun setTextScale(scale: Float) {
+        viewModelScope.launch { themeRepository.setTextScale(scale) }
+    }
+
+    fun setUiScaleEnabled(enabled: Boolean) {
+        viewModelScope.launch { themeRepository.setUiScaleEnabled(enabled) }
+    }
+
+    fun setUiScale(scale: Float) {
+        viewModelScope.launch { themeRepository.setUiScale(scale) }
+    }
+
     fun saveCustomColors(values: Map<String, String>, useDark: Boolean) {
         viewModelScope.launch {
             val colors = ThemeColorFields.ALL.mapNotNull { field ->

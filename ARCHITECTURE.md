@@ -13,6 +13,7 @@
 - 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；默认使用枫糖，另含落樱、青碧、动态取色和自定义主题。
 - 独立 `theme_settings` 页面将主题模式与主题配色分离；模式提供浅色和深色，动态取色是随当前模式区分浅色/深色的主题。
 - 每个配色版本只暴露 `primary`、`secondary`、`background` 和 `surface` 四个来源色；`ATOMTheme` 依据所选模式派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
+- `ATOMTheme` 通过 `LocalDensity` 应用可选的文本缩放与 UI 缩放，两者均支持 80%-120% 并由主题仓库持久化。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。
 

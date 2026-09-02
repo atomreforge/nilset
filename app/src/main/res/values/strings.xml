@@ -23,6 +23,11 @@
     <string name="theme_mode_dark">深色</string>
     <string name="theme_palette">主题配色</string>
     <string name="theme_card_borders">卡片描边</string>
+    <string name="theme_display_scaling">显示缩放</string>
+    <string name="theme_text_scale">文本缩放</string>
+    <string name="theme_ui_scale">UI 缩放</string>
+    <string name="theme_reset_scale">重置缩放</string>
+    <string name="theme_scale_percent">%1$d%%</string>
     <string name="theme_palette_light">当前显示浅色版本</string>
     <string name="theme_palette_dark">当前显示深色版本</string>
     <string name="theme_custom_colors">自定义主要颜色</string>

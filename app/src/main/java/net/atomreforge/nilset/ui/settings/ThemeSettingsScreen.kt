@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,6 +47,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
@@ -131,6 +133,35 @@ fun ThemeSettingsScreen(
             )
 
             Text(
+                text = stringResource(R.string.theme_display_scaling),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            ThemeScaleControl(
+                title = stringResource(R.string.theme_text_scale),
+                checked = settings.textScaleEnabled,
+                scale = settings.textScale,
+                showBorder = settings.showCardBorders,
+                onCheckedChange = viewModel::setTextScaleEnabled,
+                onScaleChange = viewModel::setTextScale,
+                onReset = {
+                    viewModel.setTextScaleEnabled(false)
+                    viewModel.setTextScale(UserThemeSettings.DEFAULT_SCALE)
+                },
+            )
+            ThemeScaleControl(
+                title = stringResource(R.string.theme_ui_scale),
+                checked = settings.uiScaleEnabled,
+                scale = settings.uiScale,
+                showBorder = settings.showCardBorders,
+                onCheckedChange = viewModel::setUiScaleEnabled,
+                onScaleChange = viewModel::setUiScale,
+                onReset = {
+                    viewModel.setUiScaleEnabled(false)
+                    viewModel.setUiScale(UserThemeSettings.DEFAULT_SCALE)
+                },
+            )
+
+            Text(
                 text = stringResource(R.string.theme_palette),
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -213,6 +244,15 @@ private fun ThemeModeGroup(
                 ListItem(
                     headlineContent = { Text(label) },
                     supportingContent = null,
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(
+                                if (mode == ThemeMode.LIGHT) R.drawable.ic_bright else R.drawable.ic_dark,
+                            ),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
                     trailingContent = {
                         RadioButton(
                             selected = settings.mode == mode,
@@ -248,6 +288,13 @@ private fun ThemeCardBorderToggle(
     ) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.theme_card_borders)) },
+            leadingContent = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_border),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
             trailingContent = {
                 Switch(
                     checked = settings.showCardBorders,
@@ -258,6 +305,82 @@ private fun ThemeCardBorderToggle(
                 .fillMaxWidth()
                 .clickable { onChange(!settings.showCardBorders) },
         )
+    }
+}
+
+@Composable
+private fun ThemeScaleControl(
+    title: String,
+    checked: Boolean,
+    scale: Float,
+    showBorder: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onScaleChange: (Float) -> Unit,
+    onReset: () -> Unit,
+) {
+    var sliderValue by remember(checked, scale) {
+        mutableStateOf(scale)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        border = if (showBorder) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
+    ) {
+        Column {
+            ListItem(
+                headlineContent = { Text(title) },
+                trailingContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        IconButton(
+                            onClick = onReset,
+                            modifier = Modifier.size(38.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_reset),
+                                contentDescription = stringResource(R.string.theme_reset_scale),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                        Switch(
+                            checked = checked,
+                            onCheckedChange = onCheckedChange,
+                        )
+                    }
+                },
+            )
+            Slider(
+                value = sliderValue,
+                onValueChange = { value ->
+                    sliderValue = value
+                    onScaleChange(value)
+                },
+                valueRange = UserThemeSettings.MIN_SCALE..UserThemeSettings.MAX_SCALE,
+                enabled = checked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            )
+            Text(
+                text = stringResource(
+                    R.string.theme_scale_percent,
+                    (sliderValue * 100).roundToInt(),
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = 20.dp, bottom = 10.dp),
+            )
+        }
     }
 }
 

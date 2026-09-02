@@ -10,9 +10,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import net.atomreforge.nilset.core.theme.ThemeColorFields
 import net.atomreforge.nilset.core.theme.ThemeColorParser
 import net.atomreforge.nilset.core.theme.ThemeColors
@@ -66,11 +69,19 @@ fun ATOMTheme(
         else -> remember(settings, useDarkTheme) { settings.toColorScheme(useDarkTheme) }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppThemeConfig.Default.typography,
-        content = content,
+    val currentDensity = LocalDensity.current
+    val scaledDensity = Density(
+        density = currentDensity.density * settings.effectiveUiScale,
+        fontScale = currentDensity.fontScale * settings.effectiveTextScale,
     )
+
+    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppThemeConfig.Default.typography,
+            content = content,
+        )
+    }
 }
 
 private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {

@@ -68,6 +68,25 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `scale settings apply only when enabled`() {
+        val disabled = UserThemeSettings(
+            textScaleEnabled = false,
+            textScale = 1.2f,
+            uiScaleEnabled = false,
+            uiScale = 0.8f,
+        )
+        val enabled = disabled.copy(
+            textScaleEnabled = true,
+            uiScaleEnabled = true,
+        )
+
+        assertEquals(1f, disabled.effectiveTextScale)
+        assertEquals(1f, disabled.effectiveUiScale)
+        assertEquals(1.2f, enabled.effectiveTextScale)
+        assertEquals(0.8f, enabled.effectiveUiScale)
+    }
+
+    @Test
     fun `preset resolves source colors by mode`() {
         val settings = UserThemeSettings(paletteId = ThemePreset.JADE.id)
 
