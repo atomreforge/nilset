@@ -7,11 +7,12 @@ import org.junit.Test
 class ThemeModelsTest {
 
     @Test
-    fun `four presets have separate light and dark source colors`() {
+    fun `built in presets have separate light and dark source colors`() {
         val presets = listOf(
             ThemePreset.MAPLE,
             ThemePreset.CHERRY,
             ThemePreset.JADE,
+            ThemePreset.TING_BLUE,
             ThemePreset.DYNAMIC,
         )
 

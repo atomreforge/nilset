@@ -86,6 +86,22 @@ enum class ThemePreset(
             surface = "#182624",
         ),
     ),
+    TING_BLUE(
+        "ting-blue",
+        "汀蓝",
+        ThemeColors(
+            primary = "#1F6FEB",
+            secondary = "#64748B",
+            background = "#F5F8FC",
+            surface = "#E9F0F8",
+        ),
+        ThemeColors(
+            primary = "#4C8DF6",
+            secondary = "#8FA5BF",
+            background = "#0F151C",
+            surface = "#18212C",
+        ),
+    ),
     DYNAMIC(
         "dynamic",
         "动态取色",
