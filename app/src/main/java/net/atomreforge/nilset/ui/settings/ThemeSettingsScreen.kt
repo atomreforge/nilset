@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.core.theme.ThemeColorFields
 import net.atomreforge.nilset.core.theme.ThemeColorParser
+import net.atomreforge.nilset.core.theme.ThemeColors
 import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
@@ -144,6 +145,11 @@ fun ThemeSettingsScreen(
                             useDark = useDarkTheme,
                             isSelected = settings.palette == palette,
                             showBorder = settings.showCardBorders,
+                            customColors = if (palette == ThemePreset.CUSTOM) {
+                                if (useDarkTheme) settings.customDarkColors else settings.customLightColors
+                            } else {
+                                null
+                            },
                             onClick = { viewModel.selectPalette(palette.id) },
                             modifier = Modifier.weight(1f),
                         )
@@ -261,6 +267,7 @@ private fun ThemePaletteCard(
     useDark: Boolean,
     isSelected: Boolean,
     showBorder: Boolean,
+    customColors: ThemeColors?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -291,7 +298,7 @@ private fun ThemePaletteCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ThemePalettePreview(palette, useDark)
+            ThemePalettePreview(palette, useDark, customColors)
             Text(
                 text = palette.label,
                 style = MaterialTheme.typography.titleSmall,
@@ -313,8 +320,11 @@ private fun ThemePaletteCard(
 private fun ThemePalettePreview(
     palette: ThemePreset,
     useDark: Boolean,
+    customColors: ThemeColors?,
 ) {
-    val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
+    val colors = palette.colors(useDark)
+        ?: customColors
+        ?: UserThemeSettings.FALLBACK_DARK_COLORS
     val swatches = ThemeColorFields.ALL.mapNotNull { field ->
         ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
     }
