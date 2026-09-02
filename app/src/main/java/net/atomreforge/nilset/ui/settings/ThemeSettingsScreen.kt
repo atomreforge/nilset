@@ -1,5 +1,6 @@
 package net.atomreforge.nilset.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -11,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,17 +67,22 @@ fun ThemeSettingsScreen(
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val systemDarkTheme = isSystemInDarkTheme()
     val useDarkTheme = settings.usesDarkTheme(systemDarkTheme)
+    var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.theme_settings_title)) },
                 navigationIcon = {
-                    Box(
+                    IconButton(
+                        onClick = {
+                            if (!isNavigatingBack) {
+                                isNavigatingBack = true
+                                onNavigateBack()
+                            }
+                        },
                         modifier = Modifier
                             .size(48.dp)
-                            .clickable(onClick = onNavigateBack),
-                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_back),
@@ -103,18 +112,32 @@ fun ThemeSettingsScreen(
                 onModeChange = viewModel::setThemeMode,
             )
 
-            Text(
-                text = stringResource(R.string.theme_palette),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            ThemePreset.entries.forEach { palette ->
-                ThemePaletteCard(
-                    palette = palette,
-                    useDark = useDarkTheme,
-                    isSelected = settings.palette == palette,
-                    onClick = { viewModel.selectPalette(palette.id) },
+            if (!settings.isDynamic) {
+                Text(
+                    text = stringResource(R.string.theme_palette),
+                    style = MaterialTheme.typography.titleMedium,
                 )
-                if (palette == ThemePreset.CUSTOM && settings.palette == ThemePreset.CUSTOM) {
+                ThemePreset.entries.chunked(2).forEach { rowPalettes ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        rowPalettes.forEach { palette ->
+                            ThemePaletteCard(
+                                palette = palette,
+                                useDark = useDarkTheme,
+                                isSelected = settings.palette == palette,
+                                onClick = { viewModel.selectPalette(palette.id) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rowPalettes.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                if (settings.palette == ThemePreset.CUSTOM) {
                     ThemeCustomColorEditor(
                         settings = settings,
                         useDark = useDarkTheme,
@@ -180,38 +203,46 @@ private fun ThemePaletteCard(
     useDark: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
         color = if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
+            MaterialTheme.colorScheme.surfaceContainer
         },
     ) {
-        ListItem(
-            headlineContent = { Text(palette.label) },
-            leadingContent = { ThemePalettePreview(palette, useDark) },
-            supportingContent = {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ThemePalettePreview(palette, useDark)
+            Text(
+                text = palette.label,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            if (isSelected) {
                 Text(
-                    text = stringResource(
-                        if (useDark) R.string.theme_palette_dark else R.string.theme_palette_light,
-                    ),
+                    text = "✓",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleSmall,
                 )
-            },
-            trailingContent = {
-                if (isSelected) {
-                    Text(
-                        text = "✓",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -220,12 +251,12 @@ private fun ThemePalettePreview(
     palette: ThemePreset,
     useDark: Boolean,
 ) {
-    val colors = palette.colors(useDark) ?: UserThemeSettings.DEFAULT_DARK_COLORS
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    val colors = palette.colors(useDark) ?: UserThemeSettings.FALLBACK_DARK_COLORS
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         ThemeColorFields.ALL.forEach { field ->
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(14.dp)
                     .clip(CircleShape)
                     .background(
                         ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)

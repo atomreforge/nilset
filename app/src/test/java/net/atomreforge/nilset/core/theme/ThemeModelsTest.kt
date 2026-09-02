@@ -9,13 +9,13 @@ class ThemeModelsTest {
     @Test
     fun `four presets have separate light and dark source colors`() {
         val presets = listOf(
-            ThemePreset.DEFAULT,
             ThemePreset.MAPLE,
             ThemePreset.CHERRY,
             ThemePreset.JADE,
         )
 
         assertEquals(presets, ThemePreset.entries.filterNot { it == ThemePreset.CUSTOM })
+        assertEquals(ThemePreset.MAPLE.id, UserThemeSettings().paletteId)
         presets.forEach { preset ->
             assertEquals(preset.lightColors, preset.colors(false))
             assertEquals(preset.darkColors, preset.colors(true))

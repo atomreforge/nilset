@@ -117,7 +117,7 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
         surfaceContainerHighest = surface.blend(onSurface, 0.26f),
         outline = surface.blend(onSurface, 0.48f),
         outlineVariant = surface.blend(onSurface, 0.18f),
-        scrim = onSurface,
+        scrim = Color.Black,
         inverseSurface = onSurface,
         inverseOnSurface = surface,
         inversePrimary = primary.blend(background, 0.8f),

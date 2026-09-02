@@ -18,7 +18,7 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
 - Material 3 主题、自定义字体和可扩展的主题配置。
-- 主题模式提供浅色、深色和 Material You；配色支持默认、枫糖、落樱、青碧和自定义，四个内置配色均含浅色与深色版本，四色自定义结果通过 DataStore 恢复。
+- 主题模式提供浅色、深色和 Material You；默认使用枫糖，另含落樱、青碧和自定义，三个内置配色均含浅色与深色版本，四色自定义结果通过 DataStore 恢复。
 - 可选的 Material You 动态取色，Android 12+ 自动跟随系统配色。
 - 强类型 YAML 配置加载，配置错误时快速失败。
 

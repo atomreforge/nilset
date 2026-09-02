@@ -10,8 +10,8 @@
 - DI 使用 Hilt，依赖入口统一在 `SingletonComponent`。
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
-- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；内置默认、枫糖、落樱、青碧和自定义配色。
-- 独立 `theme_settings` 页面将主题模式与主题配色分离；模式提供浅色、深色和 Material You，四个内置预设分别保存浅色与深色版本。
+- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；默认使用枫糖，另含落樱、青碧和自定义配色。
+- 独立 `theme_settings` 页面将主题模式与主题配色分离；模式提供浅色、深色和 Material You，三个内置预设分别保存浅色与深色版本。
 - 每个配色版本只暴露 `primary`、`secondary`、`background` 和 `surface` 四个来源色；`ATOMTheme` 依据所选模式派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。

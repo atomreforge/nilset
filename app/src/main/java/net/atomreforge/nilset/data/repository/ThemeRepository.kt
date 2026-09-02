@@ -41,7 +41,7 @@ class ThemeRepository @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
         mode = if (appConfig.theme.materialYou) ThemeMode.DYNAMIC else ThemeMode.DARK,
-        paletteId = ThemePreset.DEFAULT.id,
+        paletteId = ThemePreset.MAPLE.id,
     )
 
     val settings: StateFlow<UserThemeSettings> = dataStore.data
@@ -78,10 +78,10 @@ class ThemeRepository @Inject constructor(
         update { current ->
             val inheritedLight = current.customLightColors
                 ?: current.palette.lightColors
-                ?: UserThemeSettings.DEFAULT_LIGHT_COLORS
+                ?: UserThemeSettings.FALLBACK_LIGHT_COLORS
             val inheritedDark = current.customDarkColors
                 ?: current.palette.darkColors
-                ?: UserThemeSettings.DEFAULT_DARK_COLORS
+                ?: UserThemeSettings.FALLBACK_DARK_COLORS
             current.copy(
                 paletteId = paletteId,
                 customLightColors = if (paletteId == ThemePreset.CUSTOM.id) inheritedLight else current.customLightColors,
@@ -108,8 +108,8 @@ class ThemeRepository @Inject constructor(
         update { current ->
             current.copy(
                 paletteId = ThemePreset.CUSTOM.id,
-                customLightColors = if (useDark) current.customLightColors else UserThemeSettings.DEFAULT_LIGHT_COLORS,
-                customDarkColors = if (useDark) UserThemeSettings.DEFAULT_DARK_COLORS else current.customDarkColors,
+                customLightColors = if (useDark) current.customLightColors else UserThemeSettings.FALLBACK_LIGHT_COLORS,
+                customDarkColors = if (useDark) UserThemeSettings.FALLBACK_DARK_COLORS else current.customDarkColors,
             )
         }
     }

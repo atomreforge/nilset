@@ -39,22 +39,6 @@ enum class ThemePreset(
     val lightColors: ThemeColors?,
     val darkColors: ThemeColors?,
 ) {
-    DEFAULT(
-        "default",
-        "默认",
-        ThemeColors(
-            primary = "#D87C5F",
-            secondary = "#7D5C4F",
-            background = "#F7F5F2",
-            surface = "#FFFFFF",
-        ),
-        ThemeColors(
-            primary = "#D87C5F",
-            secondary = "#7D5C4F",
-            background = "#16161E",
-            surface = "#1E1E28",
-        ),
-    ),
     MAPLE(
         "maple",
         "枫糖",
@@ -111,14 +95,14 @@ enum class ThemePreset(
 
     companion object {
         fun fromId(id: String): ThemePreset =
-            entries.firstOrNull { it.id == id } ?: DEFAULT
+            entries.firstOrNull { it.id == id } ?: MAPLE
     }
 }
 
 @Serializable
 data class UserThemeSettings(
     val mode: ThemeMode = ThemeMode.DARK,
-    val paletteId: String = ThemePreset.DEFAULT.id,
+    val paletteId: String = ThemePreset.MAPLE.id,
     val customLightColors: ThemeColors? = null,
     val customDarkColors: ThemeColors? = null,
 ) {
@@ -139,17 +123,17 @@ data class UserThemeSettings(
     fun effectiveColors(useDark: Boolean = usesDarkTheme()): ThemeColors {
         if (palette == ThemePreset.CUSTOM) {
             return if (useDark) {
-                customDarkColors ?: DEFAULT_DARK_COLORS
+                customDarkColors ?: FALLBACK_DARK_COLORS
             } else {
-                customLightColors ?: DEFAULT_LIGHT_COLORS
+                customLightColors ?: FALLBACK_LIGHT_COLORS
             }
         }
-        return palette.colors(useDark) ?: if (useDark) DEFAULT_DARK_COLORS else DEFAULT_LIGHT_COLORS
+        return palette.colors(useDark) ?: if (useDark) FALLBACK_DARK_COLORS else FALLBACK_LIGHT_COLORS
     }
 
     companion object {
-        val DEFAULT_LIGHT_COLORS = ThemePreset.DEFAULT.lightColors!!
-        val DEFAULT_DARK_COLORS = ThemePreset.DEFAULT.darkColors!!
+        val FALLBACK_LIGHT_COLORS = ThemePreset.MAPLE.lightColors!!
+        val FALLBACK_DARK_COLORS = ThemePreset.MAPLE.darkColors!!
     }
 }
 
