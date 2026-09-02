@@ -1,6 +1,8 @@
 package net.atomreforge.nilset.data.repository
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -20,8 +22,8 @@ import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
 import net.atomreforge.nilset.const.ThemeStoreKeys
 import net.atomreforge.nilset.core.theme.ThemeColors
-import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemeColorParser
+import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 import net.atomreforge.nilset.data.config.AppConfig
@@ -133,16 +135,9 @@ class ThemeRepository @Inject constructor(
         }
     }
 
-    suspend fun setCustomBackground(color: String, useDark: Boolean) {
-        val normalizedColor = ThemeColorParser.normalize(color)
-        requireNotNull(normalizedColor)
-
+    suspend fun setCustomBackgroundImage(uri: Uri) {
         update { current ->
-            if (useDark) {
-                current.copy(customBackgroundDark = normalizedColor)
-            } else {
-                current.copy(customBackgroundLight = normalizedColor)
-            }
+            current.copy(backgroundImageUri = uri.toString())
         }
     }
 
@@ -152,19 +147,34 @@ class ThemeRepository @Inject constructor(
                 paletteId = ThemePreset.CUSTOM.id,
                 customLightColors = if (useDark) current.customLightColors else UserThemeSettings.FALLBACK_LIGHT_COLORS,
                 customDarkColors = if (useDark) UserThemeSettings.FALLBACK_DARK_COLORS else current.customDarkColors,
-                customBackgroundLight = if (useDark) current.customBackgroundLight else null,
-                customBackgroundDark = if (useDark) null else current.customBackgroundDark,
             )
         }
     }
 
-    suspend fun resetCustomBackground(useDark: Boolean) {
-        update { current ->
-            if (useDark) {
-                current.copy(customBackgroundDark = null)
-            } else {
-                current.copy(customBackgroundLight = null)
+    suspend fun resetCustomBackgroundImage(context: Context) {
+        settings.value.backgroundImageUri
+            ?.let(Uri::parse)
+            ?.let { uri ->
+                runCatching {
+                    context.contentResolver.releasePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
             }
+        update { current ->
+            current.copy(backgroundImageUri = null)
+        }
+    }
+
+    suspend fun setBackgroundOpacity(opacity: Float) {
+        update { current ->
+            current.copy(
+                backgroundOpacity = opacity.coerceIn(
+                    UserThemeSettings.MIN_BACKGROUND_OPACITY,
+                    UserThemeSettings.MAX_BACKGROUND_OPACITY,
+                ),
+            )
         }
     }
 

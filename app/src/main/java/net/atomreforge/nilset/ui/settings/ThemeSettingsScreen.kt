@@ -2,6 +2,8 @@ package net.atomreforge.nilset.ui.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -57,6 +62,7 @@ import net.atomreforge.nilset.core.theme.ThemeColors
 import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
+import androidx.compose.material3.TopAppBarDefaults
 import kotlinx.coroutines.delay
 
 private const val ThemeEntranceInputDelayMillis = 360L
@@ -86,9 +92,13 @@ fun ThemeSettingsScreen(
 
     Scaffold(
         modifier = Modifier.blockTouchWhileEntranceLocked(!isInputEnabled),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.theme_settings_title)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -176,18 +186,6 @@ fun ThemeSettingsScreen(
                 )
             }
 
-            ThemeCustomBackgroundCard(
-                settings = settings,
-                useDark = useDarkTheme,
-                showBorder = settings.showCardBorders,
-                onSaveBackground = { color ->
-                    viewModel.saveCustomBackground(color, useDarkTheme)
-                },
-                onResetBackground = {
-                    viewModel.resetCustomBackground(useDarkTheme)
-                },
-            )
-
             Text(
                 text = stringResource(R.string.theme_display_scaling),
                 style = MaterialTheme.typography.titleMedium,
@@ -217,6 +215,12 @@ fun ThemeSettingsScreen(
                     viewModel.setUiScaleEnabled(false)
                     viewModel.setUiScale(UserThemeSettings.DEFAULT_SCALE)
                 },
+            )
+            ThemeCustomBackgroundCard(
+                settings = settings,
+                showBorder = settings.showCardBorders,
+                onImageSelected = viewModel::saveCustomBackgroundImage,
+                onOpacityChange = viewModel::setBackgroundOpacity,
             )
         }
     }
@@ -411,21 +415,31 @@ private fun ThemeScaleControl(
 @Composable
 private fun ThemeCustomBackgroundCard(
     settings: UserThemeSettings,
-    useDark: Boolean,
     showBorder: Boolean,
-    onSaveBackground: (String) -> Unit,
-    onResetBackground: () -> Unit,
+    onImageSelected: (Uri) -> Unit,
+    onOpacityChange: (Float) -> Unit,
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
-    val customBackground = if (useDark) {
-        settings.customBackgroundDark
-    } else {
-        settings.customBackgroundLight
+    val context = LocalContext.current
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            onImageSelected(uri)
+        }
+    }
+    var opacity by remember(settings.backgroundOpacity) {
+        mutableStateOf(settings.backgroundOpacity)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
-            onClick = { isExpanded = !isExpanded },
+            onClick = { imagePicker.launch(arrayOf("image/*")) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
@@ -437,12 +451,6 @@ private fun ThemeCustomBackgroundCard(
         ) {
             ListItem(
                 headlineContent = { Text(stringResource(R.string.theme_custom_background)) },
-                supportingContent = {
-                    Text(
-                        text = customBackground ?: stringResource(R.string.theme_not_customized),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                },
                 leadingContent = {
                     Icon(
                         painter = painterResource(R.drawable.ic_image),
@@ -453,98 +461,28 @@ private fun ThemeCustomBackgroundCard(
                 trailingContent = {
                     Icon(
                         painter = painterResource(R.drawable.ic_open),
-                        contentDescription = stringResource(R.string.theme_open_custom_background),
+                        contentDescription = stringResource(R.string.theme_open_background_picker),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
             )
         }
 
-        if (isExpanded) {
-            ThemeCustomBackgroundEditor(
-                initialColor = customBackground,
-                showBorder = showBorder,
-                onSaveBackground = onSaveBackground,
-                onResetBackground = onResetBackground,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemeCustomBackgroundEditor(
-    initialColor: String?,
-    showBorder: Boolean,
-    onSaveBackground: (String) -> Unit,
-    onResetBackground: () -> Unit,
-) {
-    var colorValue by remember(initialColor) {
-        mutableStateOf(initialColor.orEmpty())
-    }
-    val parsedColor = ThemeColorParser.parseArgb(colorValue)
-    val canSave = parsedColor != null
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
-        border = if (showBorder) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        } else {
-            null
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = colorValue,
-                onValueChange = { next -> colorValue = next },
-                label = { Text(colorLabels.getValue(ThemeColorFields.BACKGROUND)) },
-                isError = colorValue.isNotBlank() && !canSave,
-                supportingText = if (colorValue.isNotBlank() && !canSave) {
-                    { Text(stringResource(R.string.theme_invalid_color)) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(
-                                parsedColor?.let(::Color)
-                                    ?: MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { onSaveBackground(colorValue) },
-                    enabled = canSave,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.theme_save_background))
-                }
-                OutlinedButton(
-                    onClick = {
-                        colorValue = ""
-                        onResetBackground()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.theme_reset_background))
-                }
-            }
-        }
+        Slider(
+            value = opacity,
+            onValueChange = { value -> opacity = value },
+            onValueChangeFinished = { onOpacityChange(opacity) },
+            valueRange = UserThemeSettings.MIN_BACKGROUND_OPACITY..UserThemeSettings.MAX_BACKGROUND_OPACITY,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = stringResource(
+                R.string.theme_background_opacity,
+                (opacity * 100).roundToInt(),
+            ),
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.align(Alignment.End),
+        )
     }
 }
 

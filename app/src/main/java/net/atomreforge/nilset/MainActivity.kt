@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import net.atomreforge.nilset.ui.settings.ThemeSettingsScreen
 import net.atomreforge.nilset.ui.session.SessionViewModel
 import net.atomreforge.nilset.ui.session.ThemeViewModel
 import net.atomreforge.nilset.ui.theme.ATOMTheme
+import net.atomreforge.nilset.ui.theme.rememberCustomBackgroundImage
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -57,6 +60,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
+                    val backgroundImage = rememberCustomBackgroundImage(themeSettings.backgroundImageUri)
                     val sessionViewModel: SessionViewModel = hiltViewModel()
                     val isSessionReady by sessionViewModel.isSessionReady.collectAsStateWithLifecycle()
                     val sessionState by sessionViewModel.sessionState.collectAsStateWithLifecycle()
@@ -79,6 +83,15 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
+                        if (backgroundImage != null) {
+                            Image(
+                                bitmap = backgroundImage,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                alpha = themeSettings.backgroundOpacity,
+                                modifier = Modifier.matchParentSize(),
+                            )
+                        }
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
