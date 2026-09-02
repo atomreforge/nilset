@@ -32,26 +32,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import net.atomreforge.nilset.const.AppRoutes
-import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.ui.console.ConsoleScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
 import net.atomreforge.nilset.ui.session.SessionViewModel
+import net.atomreforge.nilset.ui.session.ThemeViewModel
 import net.atomreforge.nilset.ui.theme.ATOMTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var appConfig: AppConfig
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ATOMTheme(useDynamicColor = appConfig.theme.materialYou) {
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val themeSettings by themeViewModel.themeSettings.collectAsStateWithLifecycle()
+            val isThemeReady by themeViewModel.isThemeReady.collectAsStateWithLifecycle()
+
+            ATOMTheme(settings = themeSettings) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     val isSessionReady by sessionViewModel.isSessionReady.collectAsStateWithLifecycle()
                     val sessionState by sessionViewModel.sessionState.collectAsStateWithLifecycle()
 
-                    if (!isSessionReady) {
+                    if (!isThemeReady || !isSessionReady) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,

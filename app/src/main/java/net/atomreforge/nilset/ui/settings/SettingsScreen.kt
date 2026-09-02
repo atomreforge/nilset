@@ -17,18 +17,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onOpenConsole: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
+    var isThemeSheetOpen by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,12 +91,52 @@ fun SettingsScreen(
                     .weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = stringResource(R.string.home_settings_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_theme))
+                        },
+                        supportingContent = {
+                            Text(
+                                text = buildString {
+                                    append(themeSettings.preset.label)
+                                    if (themeSettings.colorOverrides.isNotEmpty()) {
+                                        append(" · 自定义")
+                                    }
+                                    if (themeSettings.materialYou) {
+                                        append(" · Material You")
+                                    }
+                                },
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_theme),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isThemeSheetOpen = true },
+                    )
+                }
             }
         }
+    }
+
+    if (isThemeSheetOpen) {
+        ThemeSettingsSheet(
+            settings = themeSettings,
+            onSelectPreset = viewModel::selectPreset,
+            onMaterialYouChange = viewModel::setMaterialYou,
+            onSaveColors = viewModel::saveColorOverrides,
+            onClearColors = viewModel::clearColorOverrides,
+            onDismiss = { isThemeSheetOpen = false },
+        )
     }
 }

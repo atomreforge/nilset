@@ -10,7 +10,9 @@
 - DI 使用 Hilt，依赖入口统一在 `SingletonComponent`。
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
-- 主题由 `AppThemeConfig` 提供，当前默认深色配色和内置字体；Android 12+ 可按配置启用 Material You 动态深色方案，后续可替换预设或配置。
+- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；内置默认深色、枫糖、落樱、青碧和青橙预设。
+- 设置页主题面板可选择预设、开关 Android 12+ Material You，并以 `#RRGGBB` 覆盖全部主要颜色；非法 HEX 不会被应用。
+- `ATOMTheme` 将用户设置映射为 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。
 
@@ -108,6 +110,7 @@ app/src/main/java/net/atomreforge/nilset/
 ├─ core/
 │  ├─ command/              # 指令契约、注册中心、具体指令
 │  ├─ logging/              # 控制台日志模型、级别、统一日志入口与会话文件
+│  ├─ theme/                # 主题预设、颜色字段、HEX 解析
 ├─ const/                   # 跨层表述常量：路由、接口、存储键、配置文件名、指令前缀
 ├─ data/
 │  ├─ config/               # AppConfig、ConfigLoader、时长解析
@@ -115,7 +118,7 @@ app/src/main/java/net/atomreforge/nilset/
 │  │  ├─ api/               # Retrofit 接口
 │  │  ├─ dto/               # 网络传输模型
 │  │  └─ interceptor/       # AuthInterceptor 与 TokenAuthenticator
-│  ├─ repository/           # 会话仓库与控制台历史仓库
+│  ├─ repository/           # 会话、主题与控制台历史仓库
 │  └─ session/              # SessionState 与 DataStore 数据源
 ├─ di/                       # Hilt Module
 └─ ui/

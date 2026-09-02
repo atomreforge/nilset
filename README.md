@@ -18,6 +18,7 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
 - Material 3 深色主题、自定义字体和可扩展的主题配置。
+- 主题系统支持默认深色、枫糖、落樱、青碧和青橙预设；主要颜色可自定义并通过 DataStore 恢复。
 - 可选的 Material You 动态取色，Android 12+ 自动跟随系统配色。
 - 强类型 YAML 配置加载，配置错误时快速失败。
 
@@ -44,13 +45,14 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 
 ```text
 app/src/main/java/net/atomreforge/nilset/
-├─ core/          # 纯 Kotlin 的指令模型与命令注册中心
-│  └─ logging/    # Logcat、控制台和文件日志
+├─ core/          # 纯 Kotlin 的指令与主题模型、命令注册中心
+│  ├─ logging/    # Logcat、控制台和文件日志
+│  └─ theme/      # 主题预设、颜色字段和 HEX 解析
 ├─ const/         # 跨层路由、API、存储键和配置文件表述
 ├─ data/
 │  ├─ config/     # YAML 配置模型与加载器
 │  ├─ remote/     # Retrofit API、DTO、AuthInterceptor、TokenAuthenticator
-│  ├─ repository/ # 会话与控制台历史仓库
+│  ├─ repository/ # 会话、主题与控制台历史仓库
 │  └─ session/    # DataStore 会话数据源
 ├─ di/            # Hilt 模块
 └─ ui/            # 登录、控制台、主页/设置导航、主题
