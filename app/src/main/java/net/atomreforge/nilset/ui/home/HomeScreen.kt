@@ -55,6 +55,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.ui.calendar.CalendarScreen
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 import net.atomreforge.nilset.ui.theme.themeDrawerMaskColor
 
@@ -89,12 +90,14 @@ fun HomeScreen(
 
     val destinationTitles = listOf(
         stringResource(R.string.drawer_home),
+        stringResource(R.string.drawer_calendar),
         stringResource(R.string.drawer_note),
         stringResource(R.string.drawer_todo),
         stringResource(R.string.drawer_schedule),
     )
     val destinationDetails = listOf(
         stringResource(R.string.home_empty),
+        stringResource(R.string.calendar_empty),
         stringResource(R.string.home_note_empty),
         stringResource(R.string.home_todo_empty),
         stringResource(R.string.home_schedule_empty),
@@ -148,8 +151,9 @@ fun HomeScreen(
                                 icon = {
                                     when (index) {
                                         0 -> DrawerIcon(R.drawable.ic_home, index == selectedDestination)
-                                        1 -> DrawerIcon(R.drawable.ic_note, index == selectedDestination)
-                                        2 -> DrawerIcon(R.drawable.ic_todo, index == selectedDestination)
+                                        1 -> DrawerIcon(R.drawable.ic_event, index == selectedDestination)
+                                        2 -> DrawerIcon(R.drawable.ic_note, index == selectedDestination)
+                                        3 -> DrawerIcon(R.drawable.ic_todo, index == selectedDestination)
                                         else -> DrawerIcon(R.drawable.ic_schedule, index == selectedDestination)
                                     }
                                 },
@@ -198,11 +202,15 @@ fun HomeScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = destinationDetails[selectedDestination],
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (selectedDestination == 1) {
+                    CalendarScreen()
+                } else {
+                    Text(
+                        text = destinationDetails[selectedDestination],
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

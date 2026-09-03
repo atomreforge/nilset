@@ -125,6 +125,7 @@ app/src/main/java/net/atomreforge/nilset/
 └─ ui/
    ├─ login/                # 登录 Screen / ViewModel
    ├─ console/              # 控制台 Screen / ViewModel
+   ├─ calendar/             # 独立月历 Screen 与日期状态
    ├─ home/                 # 主页与侧边栏
    ├─ main/                 # 主页/设置共用的底部导航
    ├─ session/              # 会话状态提供给启动路由使用
@@ -151,6 +152,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
 - 课表功能仍限于个人数据层：GET / PUT / DELETE 已接入客户端仓库，但还没有课表 UI；服务端当前只允许属主访问，多人共享能力尚未提供。
+- 侧边栏日历当前只是独立月历浏览视图，不加载课表或日程数据，也不提供日期详情。
 - 测试还是模板为主：核心指令、Repository、ViewModel 和 Compose UI 的有效测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。
