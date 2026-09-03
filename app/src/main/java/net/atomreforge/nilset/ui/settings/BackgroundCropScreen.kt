@@ -350,25 +350,24 @@ private fun initialCropSelection(
     targetAspectRatio: Float,
 ): CropSelection {
     if (imageAspectRatio <= 0f || targetAspectRatio <= 0f) {
-        return CropSelection(0.12f, 0.10f, 0.88f, 0.80f)
+        return CropSelection(0f, 0f, 1f, 1f)
     }
 
-    var spanY = 0.68f
-    var spanX = spanY * targetAspectRatio / imageAspectRatio
-    if (spanX > 0.80f) {
-        spanX = 0.80f
-        spanY = spanX * imageAspectRatio / targetAspectRatio
-    }
-    if (spanY > 0.80f) {
-        spanY = 0.80f
-        spanX = spanY * targetAspectRatio / imageAspectRatio
+    val spanX: Float
+    val spanY: Float
+    if (imageAspectRatio >= targetAspectRatio) {
+        spanY = 1f
+        spanX = targetAspectRatio / imageAspectRatio
+    } else {
+        spanX = 1f
+        spanY = imageAspectRatio / targetAspectRatio
     }
 
     return CropSelection(
         startX = (1f - spanX) / 2f,
-        startY = 0.12f,
+        startY = (1f - spanY) / 2f,
         endX = (1f + spanX) / 2f,
-        endY = 0.12f + spanY,
+        endY = (1f + spanY) / 2f,
     )
 }
 

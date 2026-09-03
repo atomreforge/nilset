@@ -2,9 +2,9 @@ package net.atomreforge.nilset.ui.home
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,10 +43,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -60,13 +56,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.theme.themeContainerColor
+import net.atomreforge.nilset.ui.theme.themeDrawerMaskColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     isVisible: Boolean,
-    backgroundImage: ImageBitmap? = null,
-    backgroundOpacity: Float = 1f,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
@@ -104,9 +99,6 @@ fun HomeScreen(
         stringResource(R.string.home_todo_empty),
         stringResource(R.string.home_schedule_empty),
     )
-    val configuration = LocalConfiguration.current
-    val drawerOffset = drawerState.currentOffset
-
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = !drawerState.isAnimationRunning,
@@ -116,26 +108,14 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.80f)
                     .widthIn(max = 320.dp),
-                drawerContainerColor = MaterialTheme.colorScheme.background,
+                drawerContainerColor = Color.Transparent,
                 windowInsets = WindowInsets(0),
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    backgroundImage?.let { image ->
-                        Image(
-                            bitmap = image,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            alpha = backgroundOpacity,
-                            modifier = Modifier
-                                .size(
-                                    width = configuration.screenWidthDp.dp,
-                                    height = configuration.screenHeightDp.dp,
-                                )
-                                .graphicsLayer {
-                                    translationX = drawerOffset
-                                },
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(themeDrawerMaskColor()),
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()

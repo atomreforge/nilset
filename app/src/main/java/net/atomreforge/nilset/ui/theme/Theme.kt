@@ -142,6 +142,11 @@ fun themeContainerColor(): Color {
 }
 
 @Composable
+fun themeDrawerMaskColor(): Color {
+    return MaterialTheme.colorScheme.background.copy(alpha = 0.82f)
+}
+
+@Composable
 fun themeContainerBorderColor(): Color {
     val background = MaterialTheme.colorScheme.background
     val adjustmentTarget = if (background.luminance() < 0.5f) Color.White else Color.Black
