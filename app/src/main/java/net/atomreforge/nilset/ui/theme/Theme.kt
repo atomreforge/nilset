@@ -134,6 +134,24 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
     )
 }
 
+@Composable
+fun themeContainerColor(): Color {
+    return if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        Color.Black.copy(alpha = 0.30f)
+    } else {
+        Color.White.copy(alpha = 0.52f)
+    }
+}
+
+@Composable
+fun themeContainerBorderColor(): Color {
+    return if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        Color.White.copy(alpha = 0.20f)
+    } else {
+        Color.Black.copy(alpha = 0.12f)
+    }
+}
+
 private fun ThemeColors.color(field: String): Color {
     val normalized = ThemeColorParser.normalize(value(field))
     val argb = ThemeColorParser.parseArgb(normalized)

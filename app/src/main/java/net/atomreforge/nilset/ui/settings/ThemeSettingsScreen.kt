@@ -62,6 +62,8 @@ import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.ThemePreset
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 import androidx.compose.material3.TopAppBarDefaults
+import net.atomreforge.nilset.ui.theme.themeContainerColor
+import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import kotlinx.coroutines.delay
 
 private const val ThemeEntranceInputDelayMillis = 360L
@@ -69,8 +71,7 @@ private const val ThemeEntranceInputDelayMillis = 360L
 private val colorLabels = mapOf(
     ThemeColorFields.PRIMARY to "primary（主按钮 / 选中态）",
     ThemeColorFields.SECONDARY to "secondary（点缀）",
-    ThemeColorFields.BACKGROUND to "background（页面底）",
-    ThemeColorFields.SURFACE to "surface（卡片底）",
+    ThemeColorFields.SURFACE to "surface（文字 / 图标对比）",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,9 +97,9 @@ fun ThemeSettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.theme_settings_title)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
+               colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = themeContainerColor(),
+               ),
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -218,16 +219,9 @@ fun ThemeSettingsScreen(
             )
             ThemeCustomBackgroundCard(
                 settings = settings,
-                useDark = useDarkTheme,
                 showBorder = settings.showCardBorders,
                 onImageSelected = onSelectBackgroundImage,
                 onOpacityChange = viewModel::setBackgroundOpacity,
-                onSaveBackgroundColor = { color ->
-                    viewModel.saveBackgroundColor(color, useDarkTheme)
-                },
-                onResetBackgroundColor = {
-                    viewModel.resetBackgroundColor(useDarkTheme)
-                },
                 onRemoveImage = viewModel::removeCustomBackgroundImage,
             )
         }
@@ -258,9 +252,9 @@ private fun ThemeModeGroup(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        color = themeContainerColor(),
         border = if (settings.showCardBorders) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            BorderStroke(1.dp, themeContainerBorderColor())
         } else {
             null
         },
@@ -305,9 +299,9 @@ private fun ThemeCardBorderToggle(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        color = themeContainerColor(),
         border = if (settings.showCardBorders) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            BorderStroke(1.dp, themeContainerBorderColor())
         } else {
             null
         },
@@ -352,9 +346,9 @@ private fun ThemeScaleControl(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+        color = themeContainerColor(),
         border = if (showBorder) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            BorderStroke(1.dp, themeContainerBorderColor())
         } else {
             null
         },
@@ -423,12 +417,9 @@ private fun ThemeScaleControl(
 @Composable
 private fun ThemeCustomBackgroundCard(
     settings: UserThemeSettings,
-    useDark: Boolean,
     showBorder: Boolean,
     onImageSelected: (String) -> Unit,
     onOpacityChange: (Float) -> Unit,
-    onSaveBackgroundColor: (String) -> Unit,
-    onResetBackgroundColor: () -> Unit,
     onRemoveImage: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -454,9 +445,9 @@ private fun ThemeCustomBackgroundCard(
             onClick = { imagePicker.launch(arrayOf("image/*")) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+            color = themeContainerColor(),
             border = if (showBorder) {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                BorderStroke(1.dp, themeContainerBorderColor())
             } else {
                 null
             },
@@ -496,100 +487,12 @@ private fun ThemeCustomBackgroundCard(
             modifier = Modifier.align(Alignment.End),
         )
 
-        if (settings.backgroundImageUri == null) {
-            ThemeBackgroundColorEditor(
-                initialColor = if (useDark) {
-                    settings.customBackgroundDark
-                } else {
-                    settings.customBackgroundLight
-                },
-                showBorder = showBorder,
-                onSaveBackground = onSaveBackgroundColor,
-                onResetBackground = onResetBackgroundColor,
-            )
-        } else {
+        if (settings.backgroundImageUri != null) {
             OutlinedButton(
                 onClick = onRemoveImage,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.theme_remove_background_image))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeBackgroundColorEditor(
-    initialColor: String?,
-    showBorder: Boolean,
-    onSaveBackground: (String) -> Unit,
-    onResetBackground: () -> Unit,
-) {
-    var colorValue by remember(initialColor) {
-        mutableStateOf(initialColor.orEmpty())
-    }
-    val parsedColor = ThemeColorParser.parseArgb(colorValue)
-    val canSave = parsedColor != null
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
-        border = if (showBorder) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        } else {
-            null
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = colorValue,
-                onValueChange = { next -> colorValue = next },
-                label = { Text(colorLabels.getValue(ThemeColorFields.BACKGROUND)) },
-                isError = colorValue.isNotBlank() && !canSave,
-                supportingText = if (colorValue.isNotBlank() && !canSave) {
-                    { Text(stringResource(R.string.theme_invalid_color)) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(
-                                parsedColor?.let(::Color)
-                                    ?: MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { onSaveBackground(colorValue) },
-                    enabled = canSave,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.theme_save_background_color))
-                }
-                OutlinedButton(
-                    onClick = {
-                        colorValue = ""
-                        onResetBackground()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.theme_reset_background_color))
-                }
             }
         }
     }
@@ -615,17 +518,13 @@ private fun ThemePaletteCard(
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.outlineVariant
+                    themeContainerBorderColor()
                 },
             )
         } else {
             null
         },
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.24f)
-        },
+        color = themeContainerColor(),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
@@ -659,7 +558,7 @@ private fun ThemePalettePreview(
     val colors = palette.colors(useDark)
         ?: customColors
         ?: UserThemeSettings.FALLBACK_DARK_COLORS
-    val swatches = ThemeColorFields.ALL.mapNotNull { field ->
+    val swatches = ThemeColorFields.EDITABLE.mapNotNull { field ->
         ThemeColorParser.parseArgb(colors.value(field))?.let(::Color)
     }
 
@@ -690,7 +589,7 @@ private fun ThemeCustomColorEditor(
     ) {
         mutableStateOf(
             settings.effectiveColors(useDark).let { colors ->
-                ThemeColorFields.ALL.associateWith { field ->
+                ThemeColorFields.EDITABLE.associateWith { field ->
                     colors.value(field).orEmpty()
                 }
             },
@@ -704,11 +603,11 @@ private fun ThemeCustomColorEditor(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         border = if (showBorder) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            BorderStroke(1.dp, themeContainerBorderColor())
         } else {
             null
         },
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
+        color = themeContainerColor(),
     ) {
         Column(
             modifier = Modifier
@@ -716,7 +615,7 @@ private fun ThemeCustomColorEditor(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ThemeColorFields.ALL.forEach { field ->
+            ThemeColorFields.EDITABLE.forEach { field ->
                 val value = colorValues.getValue(field)
                 val parsedColor = ThemeColorParser.parseArgb(value)
                 val isError = value.isNotBlank() && parsedColor == null

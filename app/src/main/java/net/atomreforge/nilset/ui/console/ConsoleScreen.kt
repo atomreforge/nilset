@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import net.atomreforge.nilset.ui.theme.themeContainerColor
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import net.atomreforge.nilset.core.logging.ConsoleEntry
@@ -65,7 +66,7 @@ fun ConsoleScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.console_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = themeContainerColor(),
                 ),
                 navigationIcon = {
                     IconButton(

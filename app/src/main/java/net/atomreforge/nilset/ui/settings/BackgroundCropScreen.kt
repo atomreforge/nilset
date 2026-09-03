@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -45,10 +48,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.theme.rememberCustomBackgroundImage
-import kotlin.math.pow
-
+import net.atomreforge.nilset.ui.theme.themeContainerColor
 private data class CropSelection(
     val startX: Float,
     val startY: Float,
@@ -56,8 +59,7 @@ private data class CropSelection(
     val endY: Float,
 ) {
     companion object {
-        val Initial = CropSelection(0.12f, 0.10f, 0.88f, 0.80f)
-        const val MIN_SPAN = 0.12f
+        const val MIN_SIZE_PX = 96
     }
 }
 
@@ -81,9 +83,11 @@ fun BackgroundCropScreen(
     val image = rememberCustomBackgroundImage(sourceUri)
     val coroutineScope = rememberCoroutineScope()
     val primaryColor = MaterialTheme.colorScheme.primary
-    var selection by remember(sourceUri) { mutableStateOf(CropSelection.Initial) }
+    val configuration = LocalConfiguration.current
+    val targetAspectRatio = configuration.screenWidthDp.toFloat() / configuration.screenHeightDp.toFloat()
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var dragMode by remember { mutableStateOf(CropDragMode.NONE) }
+    var selection by remember(sourceUri) { mutableStateOf(CropSelection(0.12f, 0.10f, 0.88f, 0.80f)) }
     var isApplying by remember { mutableStateOf(false) }
     var isFailed by remember { mutableStateOf(false) }
 
@@ -93,7 +97,7 @@ fun BackgroundCropScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.background_crop_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = themeContainerColor(),
                 ),
                 navigationIcon = {
                     IconButton(onClick = onDiscard) {
@@ -132,6 +136,12 @@ fun BackgroundCropScreen(
                 }
             } else {
                 val aspectRatio = currentImage.width.toFloat() / currentImage.height.toFloat()
+                LaunchedEffect(currentImage, targetAspectRatio) {
+                    selection = initialCropSelection(
+                        imageAspectRatio = aspectRatio,
+                        targetAspectRatio = targetAspectRatio,
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -158,6 +168,7 @@ fun BackgroundCropScreen(
                                         mode = dragMode,
                                         dragAmount = amount,
                                         canvasSize = canvasSize,
+                                        targetAspectRatio = targetAspectRatio,
                                     )
                                 },
                                 onDragEnd = {
@@ -234,10 +245,16 @@ fun BackgroundCropScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = {
-                        selection = CropSelection.Initial
-                        isFailed = false
+                        currentImage?.let { image ->
+                            selection = initialCropSelection(
+                                imageAspectRatio = image.width.toFloat() / image.height.toFloat(),
+                                targetAspectRatio = targetAspectRatio,
+                            )
+                            isFailed = false
+                        }
                     },
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
                 ) {
                     Text(stringResource(R.string.background_crop_reset))
                 }
@@ -263,6 +280,7 @@ fun BackgroundCropScreen(
                     },
                     enabled = currentImage != null && !isApplying,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
                 ) {
                     if (isApplying) {
                         CircularProgressIndicator(
@@ -300,46 +318,113 @@ private fun cropDragModeFor(
     }
 }
 
+private fun initialCropSelection(
+    imageAspectRatio: Float,
+    targetAspectRatio: Float,
+): CropSelection {
+    if (imageAspectRatio <= 0f || targetAspectRatio <= 0f) {
+        return CropSelection(0.12f, 0.10f, 0.88f, 0.80f)
+    }
+
+    var spanY = 0.68f
+    var spanX = spanY * targetAspectRatio / imageAspectRatio
+    if (spanX > 0.80f) {
+        spanX = 0.80f
+        spanY = spanX * imageAspectRatio / targetAspectRatio
+    }
+    if (spanY > 0.80f) {
+        spanY = 0.80f
+        spanX = spanY * targetAspectRatio / imageAspectRatio
+    }
+
+    return CropSelection(
+        startX = (1f - spanX) / 2f,
+        startY = 0.12f,
+        endX = (1f + spanX) / 2f,
+        endY = 0.12f + spanY,
+    )
+}
+
 private fun updateCropSelection(
     selection: CropSelection,
     mode: CropDragMode,
     dragAmount: Offset,
     canvasSize: IntSize,
+    targetAspectRatio: Float,
 ): CropSelection {
-    if (canvasSize == IntSize.Zero) return selection
+    if (canvasSize == IntSize.Zero || targetAspectRatio <= 0f) return selection
     val deltaX = dragAmount.x / canvasSize.width
     val deltaY = dragAmount.y / canvasSize.height
-    val minSpan = CropSelection.MIN_SPAN
 
-    return when (mode) {
-        CropDragMode.MOVE -> {
-            val boundedX = deltaX.coerceIn(-selection.startX, 1f - selection.endX)
-            val boundedY = deltaY.coerceIn(-selection.startY, 1f - selection.endY)
-            selection.copy(
-                startX = selection.startX + boundedX,
-                startY = selection.startY + boundedY,
-                endX = selection.endX + boundedX,
-                endY = selection.endY + boundedY,
-            )
-        }
-        CropDragMode.TOP_LEFT -> selection.copy(
-            startX = (selection.startX + deltaX).coerceIn(0f, selection.endX - minSpan),
-            startY = (selection.startY + deltaY).coerceIn(0f, selection.endY - minSpan),
+    if (mode == CropDragMode.MOVE) {
+        val boundedX = deltaX.coerceIn(-selection.startX, 1f - selection.endX)
+        val boundedY = deltaY.coerceIn(-selection.startY, 1f - selection.endY)
+        return selection.copy(
+            startX = selection.startX + boundedX,
+            startY = selection.startY + boundedY,
+            endX = selection.endX + boundedX,
+            endY = selection.endY + boundedY,
         )
-        CropDragMode.TOP_RIGHT -> selection.copy(
-            endX = (selection.endX + deltaX).coerceIn(selection.startX + minSpan, 1f),
-            startY = (selection.startY + deltaY).coerceIn(0f, selection.endY - minSpan),
-        )
-        CropDragMode.BOTTOM_LEFT -> selection.copy(
-            startX = (selection.startX + deltaX).coerceIn(0f, selection.endX - minSpan),
-            endY = (selection.endY + deltaY).coerceIn(selection.startY + minSpan, 1f),
-        )
-        CropDragMode.BOTTOM_RIGHT -> selection.copy(
-            endX = (selection.endX + deltaX).coerceIn(selection.startX + minSpan, 1f),
-            endY = (selection.endY + deltaY).coerceIn(selection.startY + minSpan, 1f),
-        )
-        CropDragMode.NONE -> selection
     }
+    if (mode == CropDragMode.NONE) return selection
+
+    val movingXIsStart = mode == CropDragMode.TOP_LEFT || mode == CropDragMode.BOTTOM_LEFT
+    val movingYIsStart = mode == CropDragMode.TOP_LEFT || mode == CropDragMode.TOP_RIGHT
+    val anchorX = if (movingXIsStart) selection.endX else selection.startX
+    val anchorY = if (movingYIsStart) selection.endY else selection.startY
+    val targetEdgeX = (if (movingXIsStart) selection.startX else selection.endX) + deltaX
+    val targetEdgeY = (if (movingYIsStart) selection.startY else selection.endY) + deltaY
+    val desiredSpanX = abs(targetEdgeX - anchorX)
+    val desiredSpanY = abs(targetEdgeY - anchorY)
+
+    val maxSpanX = if (movingXIsStart) anchorX else 1f - anchorX
+    val maxSpanY = if (movingYIsStart) anchorY else 1f - anchorY
+    val minSpanX = CropSelection.MIN_SIZE_PX.toFloat() / canvasSize.width
+    val minSpanY = CropSelection.MIN_SIZE_PX.toFloat() / canvasSize.height
+
+    fun fitFromSpanX(spanX: Float): Pair<Float, Float> {
+        var fittedX = spanX.coerceIn(minSpanX, maxSpanX)
+        var fittedY = fittedX * canvasSize.width / (canvasSize.height * targetAspectRatio)
+        if (fittedY > maxSpanY) {
+            fittedY = maxSpanY
+            fittedX = fittedY * canvasSize.height * targetAspectRatio / canvasSize.width
+        }
+        if (fittedY < minSpanY) {
+            fittedY = minSpanY
+            fittedX = fittedY * canvasSize.height * targetAspectRatio / canvasSize.width
+        }
+        return fittedX.coerceIn(minSpanX, maxSpanX) to fittedY.coerceIn(minSpanY, maxSpanY)
+    }
+
+    fun fitFromSpanY(spanY: Float): Pair<Float, Float> {
+        var fittedY = spanY.coerceIn(minSpanY, maxSpanY)
+        var fittedX = fittedY * canvasSize.height * targetAspectRatio / canvasSize.width
+        if (fittedX > maxSpanX) {
+            fittedX = maxSpanX
+            fittedY = fittedX * canvasSize.width / (canvasSize.height * targetAspectRatio)
+        }
+        if (fittedX < minSpanX) {
+            fittedX = minSpanX
+            fittedY = fittedX * canvasSize.width / (canvasSize.height * targetAspectRatio)
+        }
+        return fittedX.coerceIn(minSpanX, maxSpanX) to fittedY.coerceIn(minSpanY, maxSpanY)
+    }
+
+    val fromX = fitFromSpanX(desiredSpanX)
+    val fromY = fitFromSpanY(desiredSpanY)
+    val (spanX, spanY) = if (fromX.first >= fromY.first) fromX else fromY
+
+    val newStartX = if (movingXIsStart) anchorX - spanX else anchorX
+    val newEndX = if (movingXIsStart) anchorX else anchorX + spanX
+    val newStartY = if (movingYIsStart) anchorY - spanY else anchorY
+    val newEndY = if (movingYIsStart) anchorY else anchorY + spanY
+
+    return selection.copy(
+        startX = newStartX,
+        startY = newStartY,
+        endX = newEndX,
+        endY = newEndY,
+    )
 }
 
 private fun Offset.distanceSquared(other: Offset): Float {

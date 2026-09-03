@@ -49,17 +49,18 @@ class SettingsViewModel @Inject constructor(
 
     fun saveCustomColors(values: Map<String, String>, useDark: Boolean) {
         viewModelScope.launch {
-            val colors = ThemeColorFields.ALL.mapNotNull { field ->
+            val colors = ThemeColorFields.EDITABLE.mapNotNull { field ->
                 ThemeColorParser.normalize(values[field])?.let { normalized ->
                     field to normalized
                 }
             }.toMap()
+            val currentColors = themeSettings.value.effectiveColors(useDark)
 
             themeRepository.setCustomColors(
                 colors = ThemeColors(
                     primary = colors.getValue(ThemeColorFields.PRIMARY),
                     secondary = colors.getValue(ThemeColorFields.SECONDARY),
-                    background = colors.getValue(ThemeColorFields.BACKGROUND),
+                    background = currentColors.background,
                     surface = colors.getValue(ThemeColorFields.SURFACE),
                 ),
                 useDark = useDark,
@@ -69,14 +70,6 @@ class SettingsViewModel @Inject constructor(
 
     fun resetCustomColors(useDark: Boolean) {
         viewModelScope.launch { themeRepository.resetCustomColors(useDark) }
-    }
-
-    fun saveBackgroundColor(color: String, useDark: Boolean) {
-        viewModelScope.launch { themeRepository.setCustomBackground(color, useDark) }
-    }
-
-    fun resetBackgroundColor(useDark: Boolean) {
-        viewModelScope.launch { themeRepository.resetCustomBackground(useDark) }
     }
 
     fun setBackgroundOpacity(opacity: Float) {

@@ -4,6 +4,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.const.AppRoutes
+import net.atomreforge.nilset.ui.theme.themeContainerColor
 
 
 @Composable
@@ -22,7 +24,7 @@ fun AppBottomBar(
 ) {
     NavigationBar(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = themeContainerColor(),
     ) {
         NavigationBarItem(
             selected = currentRoute == AppRoutes.Tab.HOME,
@@ -34,6 +36,9 @@ fun AppBottomBar(
                 )
             },
             label = { Text(stringResource(R.string.drawer_home)) },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f),
+            ),
         )
         NavigationBarItem(
             selected = currentRoute == AppRoutes.Tab.SETTINGS,
@@ -45,6 +50,9 @@ fun AppBottomBar(
                 )
             },
             label = { Text(stringResource(R.string.settings_title)) },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f),
+            ),
         )
     }
 }

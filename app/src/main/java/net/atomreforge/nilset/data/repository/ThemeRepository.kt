@@ -142,19 +142,6 @@ class ThemeRepository @Inject constructor(
         }
     }
 
-    suspend fun setCustomBackground(color: String, useDark: Boolean) {
-        val normalizedColor = ThemeColorParser.normalize(color)
-        requireNotNull(normalizedColor)
-
-        update { current ->
-            if (useDark) {
-                current.copy(customBackgroundDark = normalizedColor)
-            } else {
-                current.copy(customBackgroundLight = normalizedColor)
-            }
-        }
-    }
-
     suspend fun applyCroppedBackgroundImage(
         sourceUri: String,
         cropLeft: Float,
@@ -266,19 +253,7 @@ class ThemeRepository @Inject constructor(
                 paletteId = ThemePreset.CUSTOM.id,
                 customLightColors = if (useDark) current.customLightColors else UserThemeSettings.FALLBACK_LIGHT_COLORS,
                 customDarkColors = if (useDark) UserThemeSettings.FALLBACK_DARK_COLORS else current.customDarkColors,
-                customBackgroundLight = if (useDark) current.customBackgroundLight else null,
-                customBackgroundDark = if (useDark) null else current.customBackgroundDark,
             )
-        }
-    }
-
-    suspend fun resetCustomBackground(useDark: Boolean) {
-        update { current ->
-            if (useDark) {
-                current.copy(customBackgroundDark = null)
-            } else {
-                current.copy(customBackgroundLight = null)
-            }
         }
     }
 

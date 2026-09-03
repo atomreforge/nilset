@@ -9,6 +9,7 @@ object ThemeColorFields {
     const val SURFACE = "surface"
 
     val ALL = listOf(PRIMARY, SECONDARY, BACKGROUND, SURFACE)
+    val EDITABLE = listOf(PRIMARY, SECONDARY, SURFACE)
 }
 
 @Serializable
@@ -136,8 +137,6 @@ data class UserThemeSettings(
     val paletteId: String = ThemePreset.MAPLE.id,
     val customLightColors: ThemeColors? = null,
     val customDarkColors: ThemeColors? = null,
-    val customBackgroundLight: String? = null,
-    val customBackgroundDark: String? = null,
     val backgroundImageUri: String? = null,
     val backgroundOpacity: Float = DEFAULT_BACKGROUND_OPACITY,
     val showCardBorders: Boolean = true,
@@ -176,13 +175,7 @@ data class UserThemeSettings(
             palette.colors(useDark) ?: if (useDark) FALLBACK_DARK_COLORS else FALLBACK_LIGHT_COLORS
         }
 
-        val customBackground = if (useDark) customBackgroundDark else customBackgroundLight
-        val normalizedBackground = ThemeColorParser.normalize(customBackground)
-        return if (normalizedBackground == null) {
-            colors
-        } else {
-            colors.copy(background = normalizedBackground)
-        }
+        return colors
     }
 
     companion object {

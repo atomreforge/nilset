@@ -18,6 +18,10 @@ class ThemeModelsTest {
 
         assertEquals(presets + ThemePreset.CUSTOM, ThemePreset.entries)
         assertEquals(ThemePreset.MAPLE.id, UserThemeSettings().paletteId)
+        assertEquals(
+            listOf(ThemeColorFields.PRIMARY, ThemeColorFields.SECONDARY, ThemeColorFields.SURFACE),
+            ThemeColorFields.EDITABLE,
+        )
         presets.forEach { preset ->
             assertEquals(preset.lightColors, preset.colors(false))
             assertEquals(preset.darkColors, preset.colors(true))
@@ -93,25 +97,6 @@ class ThemeModelsTest {
 
         assertEquals(ThemePreset.JADE.lightColors, settings.effectiveColors(useDark = false))
         assertEquals(ThemePreset.JADE.darkColors, settings.effectiveColors(useDark = true))
-    }
-
-    @Test
-    fun `custom background overrides only current mode background`() {
-        val settings = UserThemeSettings(
-            paletteId = ThemePreset.MAPLE.id,
-            customBackgroundLight = "#FFEEDD",
-            customBackgroundDark = "#001122",
-        )
-
-        assertEquals(
-            ThemePreset.MAPLE.lightColors!!.copy(background = "#FFEEDD"),
-            settings.effectiveColors(useDark = false),
-        )
-        assertEquals(
-            ThemePreset.MAPLE.darkColors!!.copy(background = "#001122"),
-            settings.effectiveColors(useDark = true),
-        )
-        assertEquals(1f, UserThemeSettings().backgroundOpacity)
     }
 
     @Test

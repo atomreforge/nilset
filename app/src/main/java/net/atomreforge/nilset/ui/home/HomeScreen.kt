@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -46,6 +47,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.ui.theme.themeContainerColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +100,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.80f)
                     .widthIn(max = 320.dp),
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContainerColor = themeContainerColor(),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -137,6 +139,13 @@ fun HomeScreen(
                             animateDrawer(DrawerValue.Closed)
                         },
                         modifier = Modifier.padding(horizontal = 12.dp),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = if (selectedDestination == index) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                            } else {
+                                Color.Transparent
+                            },
+                        ),
                     )
                 }
             }
@@ -148,7 +157,7 @@ fun HomeScreen(
                 TopAppBar(
                     title = { Text(destinationTitles[selectedDestination]) },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
+                        containerColor = themeContainerColor(),
                     ),
                     navigationIcon = {
                     IconButton(onClick = { animateDrawer(DrawerValue.Open) }) {

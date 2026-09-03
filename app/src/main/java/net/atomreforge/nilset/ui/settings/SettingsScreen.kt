@@ -30,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.core.theme.ThemeMode
+import net.atomreforge.nilset.ui.theme.themeContainerColor
+import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +53,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = themeContainerColor(),
                 ),
                 navigationIcon = {
                     Box(
@@ -79,11 +81,11 @@ fun SettingsScreen(
                 onClick = onOpenConsole,
                 shape = RoundedCornerShape(8.dp),
                 border = if (themeSettings.showCardBorders) {
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    BorderStroke(1.dp, themeContainerBorderColor())
                 } else {
                     null
                 },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = themeContainerColor(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 ListItem(
@@ -103,11 +105,11 @@ fun SettingsScreen(
                 onClick = onOpenThemeSettings,
                 shape = RoundedCornerShape(8.dp),
                 border = if (themeSettings.showCardBorders) {
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    BorderStroke(1.dp, themeContainerBorderColor())
                 } else {
                     null
                 },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = themeContainerColor(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 ListItem(
