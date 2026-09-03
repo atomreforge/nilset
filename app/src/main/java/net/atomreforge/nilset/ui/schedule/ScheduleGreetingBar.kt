@@ -2,11 +2,12 @@ package net.atomreforge.nilset.ui.schedule
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import net.atomreforge.nilset.ui.theme.themeContainerColor
@@ -63,48 +65,53 @@ fun ScheduleGreetingBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = { memberMenuExpanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrowdown),
-                    contentDescription = stringResource(R.string.schedule_member_menu),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            DropdownMenu(
-                expanded = memberMenuExpanded,
-                onDismissRequest = { memberMenuExpanded = false },
-                containerColor = themeContainerColor(),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                state.members.forEach { member ->
-                    val isSelected = member.username == selectedUsername
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = member.username,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                            )
-                        },
-                        trailingIcon = if (isSelected) {
-                            {
-                                Text(
-                                    text = "✓",
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        onClick = {
-                            memberMenuExpanded = false
-                            onSelectMember(member.username)
-                        },
-                        modifier = Modifier.padding(horizontal = 4.dp),
+            Box {
+                IconButton(onClick = { memberMenuExpanded = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrowdown),
+                        contentDescription = stringResource(R.string.schedule_member_menu),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                DropdownMenu(
+                    expanded = memberMenuExpanded,
+                    onDismissRequest = { memberMenuExpanded = false },
+                    containerColor = themeContainerColor(),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.width(180.dp),
+                ) {
+                    state.members.forEach { member ->
+                        val isSelected = member.username == selectedUsername
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = member.username,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                            },
+                            trailingIcon = if (isSelected) {
+                                {
+                                    Text(
+                                        text = "✓",
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                            onClick = {
+                                memberMenuExpanded = false
+                                onSelectMember(member.username)
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
                 }
             }
         }
