@@ -10,9 +10,9 @@
 - DI 使用 Hilt，依赖入口统一在 `SingletonComponent`。
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
-- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；默认使用枫糖，另含落樱、青碧、汀蓝、动态取色和自定义主题。卡片与导航容器使用当前背景色派生的半透明遮罩，主题配色主要影响图标与文字。裁剪后的全局背景图按应用比例生成，透明度默认 100%；侧边栏不透出下层页面，但会同步全局背景位置。
+- 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；默认使用枫糖，另含落樱、青碧、汀蓝、动态取色和自定义主题。卡片与导航容器使用当前背景色派生的半透明遮罩，主题配色主要影响图标与文字。裁剪后的全局背景图按应用比例生成，透明度默认 100%；主页侧边栏使用当前背景色半透明遮罩，覆盖共享全局背景与下层主页内容。
 - 独立 `theme_settings` 页面将主题模式与主题配色分离；模式提供浅色和深色，动态取色是随当前模式区分浅色/深色的主题。
-- 每个配色版本只暴露 `primary`、`secondary`、`background` 和 `surface` 四个来源色；`ATOMTheme` 依据所选模式派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
+- 配色模型保留 `primary`、`secondary`、`background` 和 `surface` 四个来源色；设置页自定义只编辑 primary、secondary 和 surface，background 由预设与模式内部维护。`ATOMTheme` 依据所选模式派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
 - `ATOMTheme` 通过 `LocalDensity` 应用可选的文本缩放与 UI 缩放，两者均支持 80%-120% 并由主题仓库持久化。
 
 当前产品目标不是只有登录和控制台；账号体系与控制台只是后续功能模块的公共入口和调试基础。
