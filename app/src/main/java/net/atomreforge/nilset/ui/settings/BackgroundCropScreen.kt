@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import net.atomreforge.nilset.R
@@ -80,7 +82,8 @@ fun BackgroundCropScreen(
     onDiscard: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val image = rememberCustomBackgroundImage(sourceUri)
+    var decodeAttempt by remember(sourceUri) { mutableStateOf(0) }
+    val image = rememberCustomBackgroundImage(sourceUri, decodeAttempt)
     val coroutineScope = rememberCoroutineScope()
     val primaryColor = MaterialTheme.colorScheme.primary
     val configuration = LocalConfiguration.current
@@ -90,6 +93,16 @@ fun BackgroundCropScreen(
     var selection by remember(sourceUri) { mutableStateOf(CropSelection(0.12f, 0.10f, 0.88f, 0.80f)) }
     var isApplying by remember { mutableStateOf(false) }
     var isFailed by remember { mutableStateOf(false) }
+    var isDecodeFailed by remember(sourceUri, decodeAttempt) { mutableStateOf(false) }
+
+    LaunchedEffect(image, sourceUri, decodeAttempt) {
+        if (image == null) {
+            delay(600)
+            isDecodeFailed = true
+        } else {
+            isDecodeFailed = false
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -132,7 +145,21 @@ fun BackgroundCropScreen(
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator()
+                    if (isDecodeFailed) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.background_crop_load_failed),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Spacer(modifier = Modifier.size(12.dp))
+                            OutlinedButton(onClick = { decodeAttempt++ }) {
+                                Text(stringResource(R.string.retry))
+                            }
+                        }
+                    } else {
+                        CircularProgressIndicator()
+                    }
                 }
             } else {
                 val aspectRatio = currentImage.width.toFloat() / currentImage.height.toFloat()

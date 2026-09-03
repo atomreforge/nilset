@@ -13,11 +13,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun rememberCustomBackgroundImage(uri: String?): ImageBitmap? {
+fun rememberCustomBackgroundImage(
+    uri: String?,
+    retryKey: Any? = null,
+): ImageBitmap? {
     val context = LocalContext.current
     val imageState: State<ImageBitmap?> = produceState<ImageBitmap?>(
         initialValue = null,
         key1 = uri,
+        key2 = retryKey,
     ) {
         value = uri?.let { decodeImageBitmap(context, it) }
     }
@@ -61,13 +65,11 @@ private fun calculateInSampleSize(
     requestedHeight: Int,
 ): Int {
     var inSampleSize = 1
-    var sampleWidth = width
-    var sampleHeight = height
-    if (width <= requestedWidth || height <= requestedHeight) return inSampleSize
-
-    while (sampleWidth / 2 >= requestedWidth && sampleHeight / 2 >= requestedHeight) {
-        sampleWidth /= 2
-        sampleHeight /= 2
+    val longestSourceSide = maxOf(width, height)
+    val longestRequestedSide = maxOf(requestedWidth, requestedHeight)
+    var sampleLongestSide = longestSourceSide
+    while (sampleLongestSide / 2 >= longestRequestedSide) {
+        sampleLongestSide /= 2
         inSampleSize *= 2
     }
     return inSampleSize

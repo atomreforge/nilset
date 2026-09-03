@@ -213,13 +213,11 @@ class ThemeRepository @Inject constructor(
         requestedHeight: Int,
     ): Int {
         var inSampleSize = 1
-        var sampleWidth = width
-        var sampleHeight = height
-        if (width <= requestedWidth || height <= requestedHeight) return inSampleSize
-
-        while (sampleWidth / 2 >= requestedWidth && sampleHeight / 2 >= requestedHeight) {
-            sampleWidth /= 2
-            sampleHeight /= 2
+        val longestSourceSide = maxOf(width, height)
+        val longestRequestedSide = maxOf(requestedWidth, requestedHeight)
+        var sampleLongestSide = longestSourceSide
+        while (sampleLongestSide / 2 >= longestRequestedSide) {
+            sampleLongestSide /= 2
             inSampleSize *= 2
         }
         return inSampleSize

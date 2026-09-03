@@ -39,6 +39,8 @@
     <string name="background_crop_reset">重置选框</string>
     <string name="background_crop_apply">应用</string>
     <string name="background_crop_failed">背景应用失败，请重新选择图片</string>
+    <string name="background_crop_load_failed">图片加载失败，请重试</string>
+    <string name="retry">重试</string>
     <string name="theme_remove_background_image">移除背景图</string>
     <string name="theme_save_colors">保存颜色</string>
     <string name="theme_reset_colors">还原默认色</string>
