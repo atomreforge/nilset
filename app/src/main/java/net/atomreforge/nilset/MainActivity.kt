@@ -141,6 +141,8 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(AppRoutes.MAIN) {
                                 MainScreen(
+                                    backgroundImage = backgroundImage,
+                                    backgroundOpacity = themeSettings.backgroundOpacity,
                                     onOpenConsole = {
                                         navController.navigate(AppRoutes.CONSOLE) {
                                             launchSingleTop = true

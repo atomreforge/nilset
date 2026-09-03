@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -53,6 +57,8 @@ import net.atomreforge.nilset.ui.theme.themeContainerColor
 @Composable
 fun HomeScreen(
     isVisible: Boolean,
+    backgroundImage: ImageBitmap? = null,
+    backgroundOpacity: Float = 1f,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
@@ -100,53 +106,66 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.80f)
                     .widthIn(max = 320.dp),
-                drawerContainerColor = themeContainerColor(),
+                drawerContainerColor = MaterialTheme.colorScheme.background,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_nilset),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.drawer_header_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxSize()) {
+                    backgroundImage?.let { image ->
+                        Image(
+                            bitmap = image,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            alpha = backgroundOpacity,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                    }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_nilset),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.drawer_header_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                destinationTitles.forEachIndexed { index, title ->
-                    NavigationDrawerItem(
-                        label = { Text(title) },
-                        selected = selectedDestination == index,
-                        shape = MaterialTheme.shapes.extraSmall,
-                        icon = {
-                            when (index) {
-                                0 -> DrawerIcon(R.drawable.ic_home, index == selectedDestination)
-                                1 -> DrawerIcon(R.drawable.ic_note, index == selectedDestination)
-                                2 -> DrawerIcon(R.drawable.ic_todo, index == selectedDestination)
-                                else -> DrawerIcon(R.drawable.ic_schedule, index == selectedDestination)
-                            }
-                        },
-                        onClick = {
-                            selectedDestination = index
-                            animateDrawer(DrawerValue.Closed)
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = if (selectedDestination == index) {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                            } else {
-                                Color.Transparent
-                            },
-                        ),
-                    )
+                        destinationTitles.forEachIndexed { index, title ->
+                            NavigationDrawerItem(
+                                label = { Text(title) },
+                                selected = selectedDestination == index,
+                                shape = MaterialTheme.shapes.extraSmall,
+                                icon = {
+                                    when (index) {
+                                        0 -> DrawerIcon(R.drawable.ic_home, index == selectedDestination)
+                                        1 -> DrawerIcon(R.drawable.ic_note, index == selectedDestination)
+                                        2 -> DrawerIcon(R.drawable.ic_todo, index == selectedDestination)
+                                        else -> DrawerIcon(R.drawable.ic_schedule, index == selectedDestination)
+                                    }
+                                },
+                                onClick = {
+                                    selectedDestination = index
+                                    animateDrawer(DrawerValue.Closed)
+                                },
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = if (selectedDestination == index) {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                ),
+                            )
+                        }
+                    }
                 }
             }
         },

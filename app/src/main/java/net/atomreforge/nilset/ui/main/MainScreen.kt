@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.ImageBitmap
 import net.atomreforge.nilset.const.AppRoutes
 import net.atomreforge.nilset.ui.home.HomeScreen
 import net.atomreforge.nilset.ui.settings.SettingsScreen
@@ -29,6 +30,8 @@ private fun routePage(route: String) = if (route == AppRoutes.Tab.SETTINGS) 1 el
 
 @Composable
 fun MainScreen(
+    backgroundImage: ImageBitmap? = null,
+    backgroundOpacity: Float = 1f,
     onOpenConsole: () -> Unit,
     onOpenThemeSettings: () -> Unit,
 ) {
@@ -59,6 +62,8 @@ fun MainScreen(
             ) {
                 HomeScreen(
                     isVisible = selectedRoute == AppRoutes.Tab.HOME,
+                    backgroundImage = backgroundImage,
+                    backgroundOpacity = backgroundOpacity,
                 )
             }
             Box(
