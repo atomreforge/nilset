@@ -136,20 +136,16 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
 
 @Composable
 fun themeContainerColor(): Color {
-    return if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        Color.White.copy(alpha = 0.12f)
-    } else {
-        Color.Black.copy(alpha = 0.10f)
-    }
+    val background = MaterialTheme.colorScheme.background
+    val adjustmentTarget = if (background.luminance() < 0.5f) Color.White else Color.Black
+    return background.blend(adjustmentTarget, 0.24f).copy(alpha = 0.22f)
 }
 
 @Composable
 fun themeContainerBorderColor(): Color {
-    return if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        Color.White.copy(alpha = 0.20f)
-    } else {
-        Color.Black.copy(alpha = 0.12f)
-    }
+    val background = MaterialTheme.colorScheme.background
+    val adjustmentTarget = if (background.luminance() < 0.5f) Color.White else Color.Black
+    return background.blend(adjustmentTarget, 0.48f).copy(alpha = 0.40f)
 }
 
 private fun ThemeColors.color(field: String): Color {

@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,15 +44,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 
@@ -96,6 +104,8 @@ fun HomeScreen(
         stringResource(R.string.home_todo_empty),
         stringResource(R.string.home_schedule_empty),
     )
+    val configuration = LocalConfiguration.current
+    val drawerOffset = drawerState.currentOffset
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -107,6 +117,7 @@ fun HomeScreen(
                     .fillMaxWidth(0.80f)
                     .widthIn(max = 320.dp),
                 drawerContainerColor = MaterialTheme.colorScheme.background,
+                windowInsets = WindowInsets(0),
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     backgroundImage?.let { image ->
@@ -115,10 +126,21 @@ fun HomeScreen(
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             alpha = backgroundOpacity,
-                            modifier = Modifier.matchParentSize(),
+                            modifier = Modifier
+                                .size(
+                                    width = configuration.screenWidthDp.dp,
+                                    height = configuration.screenHeightDp.dp,
+                                )
+                                .graphicsLayer {
+                                    translationX = drawerOffset
+                                },
                         )
                     }
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding(),
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
