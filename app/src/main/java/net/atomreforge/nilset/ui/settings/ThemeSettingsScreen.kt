@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -282,6 +283,7 @@ private fun ThemeModeGroup(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onModeChange(mode) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
                 if (index < modes.lastIndex) {
                     androidx.compose.material3.HorizontalDivider()
@@ -324,6 +326,7 @@ private fun ThemeCardBorderToggle(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onChange(!settings.showCardBorders) },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         )
     }
 }
@@ -356,6 +359,7 @@ private fun ThemeScaleControl(
         Column {
             ListItem(
                 headlineContent = { Text(title) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 leadingContent = {
                     Icon(
                         painter = painterResource(iconRes),
@@ -468,6 +472,7 @@ private fun ThemeCustomBackgroundCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
 

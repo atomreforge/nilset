@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
@@ -99,6 +100,7 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
             Surface(
@@ -132,6 +134,7 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
         }
