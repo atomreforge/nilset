@@ -137,9 +137,9 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
 @Composable
 fun themeContainerColor(): Color {
     return if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        Color.Black.copy(alpha = 0.30f)
+        Color.White.copy(alpha = 0.12f)
     } else {
-        Color.White.copy(alpha = 0.52f)
+        Color.Black.copy(alpha = 0.10f)
     }
 }
 
