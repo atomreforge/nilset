@@ -45,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -78,6 +77,7 @@ private val colorLabels = mapOf(
 @Composable
 fun ThemeSettingsScreen(
     onNavigateBack: () -> Unit,
+    onSelectBackgroundImage: (String) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
@@ -218,9 +218,17 @@ fun ThemeSettingsScreen(
             )
             ThemeCustomBackgroundCard(
                 settings = settings,
+                useDark = useDarkTheme,
                 showBorder = settings.showCardBorders,
-                onImageSelected = viewModel::saveCustomBackgroundImage,
+                onImageSelected = onSelectBackgroundImage,
                 onOpacityChange = viewModel::setBackgroundOpacity,
+                onSaveBackgroundColor = { color ->
+                    viewModel.saveBackgroundColor(color, useDarkTheme)
+                },
+                onResetBackgroundColor = {
+                    viewModel.resetBackgroundColor(useDarkTheme)
+                },
+                onRemoveImage = viewModel::removeCustomBackgroundImage,
             )
         }
     }
@@ -415,9 +423,13 @@ private fun ThemeScaleControl(
 @Composable
 private fun ThemeCustomBackgroundCard(
     settings: UserThemeSettings,
+    useDark: Boolean,
     showBorder: Boolean,
-    onImageSelected: (Uri) -> Unit,
+    onImageSelected: (String) -> Unit,
     onOpacityChange: (Float) -> Unit,
+    onSaveBackgroundColor: (String) -> Unit,
+    onResetBackgroundColor: () -> Unit,
+    onRemoveImage: () -> Unit,
 ) {
     val context = LocalContext.current
     val imagePicker = rememberLauncherForActivityResult(
@@ -430,7 +442,7 @@ private fun ThemeCustomBackgroundCard(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
             }
-            onImageSelected(uri)
+            onImageSelected(uri.toString())
         }
     }
     var opacity by remember(settings.backgroundOpacity) {
@@ -483,6 +495,103 @@ private fun ThemeCustomBackgroundCard(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.End),
         )
+
+        if (settings.backgroundImageUri == null) {
+            ThemeBackgroundColorEditor(
+                initialColor = if (useDark) {
+                    settings.customBackgroundDark
+                } else {
+                    settings.customBackgroundLight
+                },
+                showBorder = showBorder,
+                onSaveBackground = onSaveBackgroundColor,
+                onResetBackground = onResetBackgroundColor,
+            )
+        } else {
+            OutlinedButton(
+                onClick = onRemoveImage,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.theme_remove_background_image))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeBackgroundColorEditor(
+    initialColor: String?,
+    showBorder: Boolean,
+    onSaveBackground: (String) -> Unit,
+    onResetBackground: () -> Unit,
+) {
+    var colorValue by remember(initialColor) {
+        mutableStateOf(initialColor.orEmpty())
+    }
+    val parsedColor = ThemeColorParser.parseArgb(colorValue)
+    val canSave = parsedColor != null
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
+        border = if (showBorder) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedTextField(
+                value = colorValue,
+                onValueChange = { next -> colorValue = next },
+                label = { Text(colorLabels.getValue(ThemeColorFields.BACKGROUND)) },
+                isError = colorValue.isNotBlank() && !canSave,
+                supportingText = if (colorValue.isNotBlank() && !canSave) {
+                    { Text(stringResource(R.string.theme_invalid_color)) }
+                } else {
+                    null
+                },
+                singleLine = true,
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(
+                                parsedColor?.let(::Color)
+                                    ?: MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = { onSaveBackground(colorValue) },
+                    enabled = canSave,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.theme_save_background_color))
+                }
+                OutlinedButton(
+                    onClick = {
+                        colorValue = ""
+                        onResetBackground()
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.theme_reset_background_color))
+                }
+            }
+        }
     }
 }
 

@@ -96,6 +96,25 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `custom background overrides only current mode background`() {
+        val settings = UserThemeSettings(
+            paletteId = ThemePreset.MAPLE.id,
+            customBackgroundLight = "#FFEEDD",
+            customBackgroundDark = "#001122",
+        )
+
+        assertEquals(
+            ThemePreset.MAPLE.lightColors!!.copy(background = "#FFEEDD"),
+            settings.effectiveColors(useDark = false),
+        )
+        assertEquals(
+            ThemePreset.MAPLE.darkColors!!.copy(background = "#001122"),
+            settings.effectiveColors(useDark = true),
+        )
+        assertEquals(1f, UserThemeSettings().backgroundOpacity)
+    }
+
+    @Test
     fun `theme settings serialize and deserialize`() {
         val settings = UserThemeSettings(
             mode = ThemeMode.DARK,

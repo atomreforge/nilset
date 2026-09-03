@@ -2,7 +2,11 @@ package net.atomreforge.nilset.data.repository
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
+import kotlin.math.roundToInt
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -17,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,6 +46,8 @@ class ThemeRepository @Inject constructor(
     appConfig: AppConfig,
 ) {
     private val dataStore = context.themeDataStore
+    private val appContext = context.applicationContext
+    private val backgroundDirectory = File(appContext.filesDir, "background")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
         mode = ThemeMode.DARK,
@@ -135,33 +142,149 @@ class ThemeRepository @Inject constructor(
         }
     }
 
-    suspend fun setCustomBackgroundImage(uri: Uri) {
+    suspend fun setCustomBackground(color: String, useDark: Boolean) {
+        val normalizedColor = ThemeColorParser.normalize(color)
+        requireNotNull(normalizedColor)
+
         update { current ->
-            current.copy(backgroundImageUri = uri.toString())
+            if (useDark) {
+                current.copy(customBackgroundDark = normalizedColor)
+            } else {
+                current.copy(customBackgroundLight = normalizedColor)
+            }
         }
     }
 
+    suspend fun applyCroppedBackgroundImage(
+        sourceUri: String,
+        cropLeft: Float,
+        cropTop: Float,
+        cropRight: Float,
+        cropBottom: Float,
+    ): String {
+        return withContext(Dispatchers.IO) {
+            val source = decodeBitmap(sourceUri)
+            requireNotNull(source)
+            require(cropLeft in 0f..1f && cropTop in 0f..1f)
+            require(cropRight in 0f..1f && cropBottom in 0f..1f)
+
+            val left = (source.width * cropLeft).roundToInt()
+            val top = (source.height * cropTop).roundToInt()
+            val right = (source.width * cropRight).roundToInt()
+            val bottom = (source.height * cropBottom).roundToInt()
+            val width = (right - left).coerceAtLeast(1)
+            val height = (bottom - top).coerceAtLeast(1)
+            val cropped = Bitmap.createBitmap(source, left, top, width, height)
+
+            backgroundDirectory.mkdirs()
+            val output = File(backgroundDirectory, "background-${System.currentTimeMillis()}.jpg")
+            output.outputStream().use { stream ->
+                cropped.compress(Bitmap.CompressFormat.JPEG, 92, stream)
+            }
+
+            deleteCurrentBackgroundFile()
+            releaseCurrentContentPermission()
+            val backgroundUri = Uri.fromFile(output).toString()
+            update { current ->
+                current.copy(
+                    backgroundImageUri = backgroundUri,
+                    backgroundOpacity = UserThemeSettings.DEFAULT_BACKGROUND_OPACITY,
+                )
+            }
+            backgroundUri
+        }
+    }
+
+    private fun decodeBitmap(sourceUri: String): Bitmap? {
+        val uri = Uri.parse(sourceUri)
+        val bounds = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        appContext.contentResolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, bounds)
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        val metrics = appContext.resources.displayMetrics
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = calculateInSampleSize(
+                width = bounds.outWidth,
+                height = bounds.outHeight,
+                requestedWidth = metrics.widthPixels,
+                requestedHeight = metrics.heightPixels,
+            )
+        }
+        return appContext.contentResolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, options)
+        }
+    }
+
+    private fun calculateInSampleSize(
+        width: Int,
+        height: Int,
+        requestedWidth: Int,
+        requestedHeight: Int,
+    ): Int {
+        var inSampleSize = 1
+        var sampleWidth = width
+        var sampleHeight = height
+        if (width <= requestedWidth || height <= requestedHeight) return inSampleSize
+
+        while (sampleWidth / 2 >= requestedWidth && sampleHeight / 2 >= requestedHeight) {
+            sampleWidth /= 2
+            sampleHeight /= 2
+            inSampleSize *= 2
+        }
+        return inSampleSize
+    }
+
+    private fun deleteCurrentBackgroundFile() {
+        val currentUri = settings.value.backgroundImageUri ?: return
+        val parsedUri = Uri.parse(currentUri)
+        if (parsedUri.scheme != "file") return
+        val currentFile = File(parsedUri.path ?: return)
+        val directoryPath = backgroundDirectory.canonicalPath
+        if (runCatching { currentFile.canonicalPath }.getOrNull()?.startsWith(directoryPath) == true) {
+            currentFile.delete()
+        }
+    }
+
+    private fun releaseCurrentContentPermission() {
+        val currentUri = settings.value.backgroundImageUri ?: return
+        val parsedUri = Uri.parse(currentUri)
+        if (parsedUri.scheme != "content") return
+        runCatching {
+            appContext.contentResolver.releasePersistableUriPermission(
+                parsedUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
+    }
     suspend fun resetCustomColors(useDark: Boolean) {
         update { current ->
             current.copy(
                 paletteId = ThemePreset.CUSTOM.id,
                 customLightColors = if (useDark) current.customLightColors else UserThemeSettings.FALLBACK_LIGHT_COLORS,
                 customDarkColors = if (useDark) UserThemeSettings.FALLBACK_DARK_COLORS else current.customDarkColors,
+                customBackgroundLight = if (useDark) current.customBackgroundLight else null,
+                customBackgroundDark = if (useDark) null else current.customBackgroundDark,
             )
         }
     }
 
-    suspend fun resetCustomBackgroundImage(context: Context) {
-        settings.value.backgroundImageUri
-            ?.let(Uri::parse)
-            ?.let { uri ->
-                runCatching {
-                    context.contentResolver.releasePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                    )
-                }
+    suspend fun resetCustomBackground(useDark: Boolean) {
+        update { current ->
+            if (useDark) {
+                current.copy(customBackgroundDark = null)
+            } else {
+                current.copy(customBackgroundLight = null)
             }
+        }
+    }
+
+    suspend fun resetCustomBackgroundImage() {
+        deleteCurrentBackgroundFile()
+        releaseCurrentContentPermission()
         update { current ->
             current.copy(backgroundImageUri = null)
         }

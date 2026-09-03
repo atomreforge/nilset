@@ -1,7 +1,5 @@
 package net.atomreforge.nilset.ui.settings
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -73,17 +71,37 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.resetCustomColors(useDark) }
     }
 
-    fun saveCustomBackgroundImage(uri: Uri) {
-        viewModelScope.launch {
-            themeRepository.setCustomBackgroundImage(uri)
-        }
+    fun saveBackgroundColor(color: String, useDark: Boolean) {
+        viewModelScope.launch { themeRepository.setCustomBackground(color, useDark) }
     }
 
-    fun resetCustomBackground(context: Context) {
-        viewModelScope.launch { themeRepository.resetCustomBackgroundImage(context) }
+    fun resetBackgroundColor(useDark: Boolean) {
+        viewModelScope.launch { themeRepository.resetCustomBackground(useDark) }
     }
 
     fun setBackgroundOpacity(opacity: Float) {
         viewModelScope.launch { themeRepository.setBackgroundOpacity(opacity) }
+    }
+
+    suspend fun applyCroppedBackgroundImage(
+        sourceUri: String,
+        cropLeft: Float,
+        cropTop: Float,
+        cropRight: Float,
+        cropBottom: Float,
+    ): String? {
+        return runCatching {
+            themeRepository.applyCroppedBackgroundImage(
+                sourceUri = sourceUri,
+                cropLeft = cropLeft,
+                cropTop = cropTop,
+                cropRight = cropRight,
+                cropBottom = cropBottom,
+            )
+        }.getOrNull()
+    }
+
+    fun removeCustomBackgroundImage() {
+        viewModelScope.launch { themeRepository.resetCustomBackgroundImage() }
     }
 }

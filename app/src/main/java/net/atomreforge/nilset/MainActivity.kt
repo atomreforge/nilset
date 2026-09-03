@@ -32,6 +32,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import net.atomreforge.nilset.const.AppRoutes
@@ -39,6 +41,7 @@ import net.atomreforge.nilset.ui.console.ConsoleScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
 import net.atomreforge.nilset.ui.settings.ThemeSettingsScreen
+import net.atomreforge.nilset.ui.settings.BackgroundCropScreen
 import net.atomreforge.nilset.ui.session.SessionViewModel
 import net.atomreforge.nilset.ui.session.ThemeViewModel
 import net.atomreforge.nilset.ui.theme.ATOMTheme
@@ -114,6 +117,23 @@ class MainActivity : ComponentActivity() {
                             composable(AppRoutes.THEME_SETTINGS) {
                                 ThemeSettingsScreen(
                                     onNavigateBack = { navController.popBackStack() },
+                                    onSelectBackgroundImage = { sourceUri ->
+                                        navController.navigate(AppRoutes.backgroundCrop(sourceUri))
+                                    },
+                                )
+                            }
+                            composable(
+                                route = AppRoutes.BACKGROUND_CROP,
+                                arguments = listOf(
+                                    navArgument("sourceUri") {
+                                        type = NavType.StringType
+                                    },
+                                ),
+                            ) { entry ->
+                                BackgroundCropScreen(
+                                    sourceUri = entry.arguments?.getString("sourceUri").orEmpty(),
+                                    onApplied = { navController.popBackStack() },
+                                    onDiscard = { navController.popBackStack() },
                                 )
                             }
                             composable(AppRoutes.CONSOLE) {
