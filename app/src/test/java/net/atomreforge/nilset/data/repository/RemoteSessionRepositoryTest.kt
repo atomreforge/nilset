@@ -6,6 +6,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerializationException
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
+import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
+import net.atomreforge.nilset.data.remote.dto.CalendarResponse
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
@@ -195,6 +197,21 @@ private class FakeDaizyNightApi : DaizyNightApi {
     }
 
     override suspend fun getUserMe(username: String): UserInfoResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun getCalendar(username: String): CalendarResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun putCalendar(
+        username: String,
+        body: CalendarPutRequest,
+    ): MessageResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun deleteCalendar(username: String): MessageResponse {
         throw UnsupportedOperationException()
     }
 

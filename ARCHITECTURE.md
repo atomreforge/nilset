@@ -119,7 +119,7 @@ app/src/main/java/net/atomreforge/nilset/
 │  │  ├─ api/               # Retrofit 接口
 │  │  ├─ dto/               # 网络传输模型
 │  │  └─ interceptor/       # AuthInterceptor 与 TokenAuthenticator
-│  ├─ repository/           # 会话、主题与控制台历史仓库
+│  ├─ repository/           # 会话、主题、控制台历史与课表仓库
 │  └─ session/              # SessionState 与 DataStore 数据源
 ├─ di/                       # Hilt Module
 └─ ui/
@@ -150,7 +150,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 没有独立 Domain 层：当前业务规模较小，UseCase 仍按需后置。
 - 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
-- 课表 API 尚未接入客户端业务层：接口契约已由服务端给出，但当前主页和设置页还没有对应功能。
+- 课表功能仍限于个人数据层：GET / PUT / DELETE 已接入客户端仓库，但还没有课表 UI；服务端当前只允许属主访问，多人共享能力尚未提供。
 - 测试还是模板为主：核心指令、Repository、ViewModel 和 Compose UI 的有效测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。

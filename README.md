@@ -15,6 +15,7 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 - 类终端控制台页面，支持内部指令扩展。
 - 控制台指令候选补齐、进程内历史保留和会话级文件日志。
 - 登录后的主页与设置页底边栏导航；主页提供侧边栏功能入口。
+- 个人课表数据层已接入服务端 GET / PUT / DELETE 接口；多人共享与具体课表 UI 暂未实现。
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
 - Material 3 主题、自定义字体和可扩展的主题配置。
@@ -53,7 +54,7 @@ app/src/main/java/net/atomreforge/nilset/
 ├─ data/
 │  ├─ config/     # YAML 配置模型与加载器
 │  ├─ remote/     # Retrofit API、DTO、AuthInterceptor、TokenAuthenticator
-│  ├─ repository/ # 会话、主题与控制台历史仓库
+│  ├─ repository/ # 会话、主题、控制台历史与课表仓库
 │  └─ session/    # DataStore 会话数据源
 ├─ di/            # Hilt 模块
 └─ ui/            # 登录、控制台、主页/设置导航、主题
@@ -91,6 +92,9 @@ api:
 - `POST /api/v1/login`
 - `POST /api/v1/refresh-access-token`
 - `GET /api/v1/user/{username}/me`
+- `GET /api/v1/user/{username}/calendar`
+- `PUT /api/v1/user/{username}/calendar`
+- `DELETE /api/v1/user/{username}/calendar`
 - `POST /api/v1/user/signout`
 
 访问令牌 401 后会按 `auth.autoRefresh` 使用 refresh token 自动换发；当前默认启用。

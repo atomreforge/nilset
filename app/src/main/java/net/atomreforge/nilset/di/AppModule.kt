@@ -26,6 +26,8 @@ import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
+import net.atomreforge.nilset.data.repository.CalendarRepository
+import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
 import net.atomreforge.nilset.data.remote.interceptor.TokenAuthenticator
@@ -168,4 +170,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSessionDataStore(impl: PreferencesSessionDataStore): SessionDataStore
+
+    @Binds
+    @Singleton
+    abstract fun bindCalendarRepository(impl: RemoteCalendarRepository): CalendarRepository
 }
