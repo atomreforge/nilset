@@ -21,7 +21,7 @@
 
 ```text
 UI 层
-  LoginScreen / ConsoleScreen / HomeScreen / SettingsScreen
+  LoginScreen / ConsoleScreen / HomeScreen / CalendarScreen / ScheduleScreen / SettingsScreen
   只展示 UiState、转发用户事件
         ↓
 Presentation 状态层
@@ -29,7 +29,7 @@ Presentation 状态层
   StateFlow + UiState + viewModelScope
         ↓
 Data 层
-  SessionRepository、ConsoleHistoryRepository、ConfigLoader
+  SessionRepository、CalendarRepository、ScheduleViewRepository、ConsoleHistoryRepository、ConfigLoader
   决定访问 Remote API 还是本地数据源
         ↓
 数据源
@@ -45,7 +45,7 @@ Data 层
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
 - 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令候选，候选按字母序过滤。
 - 登录反馈使用 Material 3 `SnackbarHost`；登录成功后清除登录页返回栈并进入主页。
-- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏，主页项固定在列表置顶，其余功能入口先作为占位栏展示。
+- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏，主页项固定在列表置顶；日历月历与个人课表读取已接入，其余功能入口暂作占位栏展示。
 - 主页与设置页共用 Material 3 `NavigationBar`；设置是独立顶层路由，不作为侧边栏项。
 - 主页和设置页在主路由内并排布局，通过 `graphicsLayer` 平移共享同一版面；切换动画可被新的导航目标立即接管。
 
@@ -54,7 +54,7 @@ Data 层
 - `SessionRepository` 是会话业务接口，`RemoteSessionRepository` 是当前实现。
 - `SessionDataStore` 只负责会话的读写和清除，不包含登录业务规则。
 - 应用启动会先等待 DataStore 会话恢复，再根据 `SessionState` 决定初始进入登录页还是主页。
-- `DaizyNightApi` 定义注册、登录、刷新访问令牌和获取用户信息接口。
+- `DaizyNightApi` 定义注册、登录、刷新访问令牌、获取用户信息和读写个人课表接口。
 - `AuthInterceptor` 从会话状态读取 access token，并统一添加 `Authorization: Bearer` 头。
 - 用户信息接口使用 `/api/v1/user/{username}/me`；路径用户名来自持久化会话，仅用于服务端属主校验。
 - access token 返回 401 时按配置自动刷新；refresh token 采用一次性轮换语义，成功后整体覆盖 access/refresh token 对。
@@ -64,6 +64,8 @@ Data 层
 - 每次 App 进程启动会在 `files/logs` 创建 `session-<序号>-<时间>.log`，序号按已有日志文件最大序号递增。
 - HTTP 日志由 OkHttp 拦截器接入并按状态分级着色。
 - `ConfigLoader.mustLoad()` 加载强类型 YAML 配置，解析或校验失败会快速失败。
+- `CalendarRepository` 通过属主校验路径读取个人课表；`ScheduleViewModel` 负责按星期筛选、排序和计算下一节课。
+- 课表共建页的成员列表目前是只含登录用户的临时占位，等待服务端成员与多人课表 API。
 
 ### Core 层
 
@@ -89,6 +91,12 @@ Data 层
 - 应用进程内通过 `SessionState` 暴露状态，磁盘上通过 DataStore 恢复。
 - `AuthInterceptor` 和 `TokenAuthenticator` 通过 `dagger.Lazy` 打破 OkHttp、Retrofit 与会话仓库之间的构建期循环依赖。
 - `auth.autoRefresh` 控制是否注册 401 自动刷新器；当前默认与 debug 联调配置均已启用。
+
+### 课表
+
+- `GET /api/v1/user/{username}/calendar` 读取当前认证用户的全量周课表。
+- 客户端数据模型使用 `weekday`、`startMin`、`endMin` 和 `title`，展示层负责把分钟转换为 `HH:mm`。
+- 服务端尚未提供成员列表、他人课表和多人共享能力；客户端成员菜单不伪造数据。
 
 ### 指令
 
@@ -142,7 +150,7 @@ app/src/main/java/net/atomreforge/nilset/
 | 导航 | Navigation Compose | 单 Activity + `NavHost` |
 | 异步 | Coroutines + Flow | ViewModel、Repository 和网络层统一使用 |
 | DI | Hilt 2.59 + KSP 2.3.11 | 适配 AGP 9 内建 Kotlin |
-| 持久化 | DataStore Preferences | 当前只存会话，Room 尚未引入 |
+| 持久化 | DataStore Preferences | 保存会话、主题和课表查看偏好，Room 尚未引入 |
 | 网络 | Retrofit + OkHttp + kotlinx.serialization | 连接 Daizy Night 服务端 |
 | 配置 | KAML + 强类型 data class | YAML fail-fast 加载 |
 | 构建 | Gradle Version Catalog + AGP 9 | 单模块工程 |
@@ -154,7 +162,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
 - 课表共建页已接入个人课表 GET 读取链路；服务端当前只允许属主访问，成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
 - 侧边栏日历当前只是独立月历浏览视图，不加载课表或日程数据，也不提供日期详情。
-- 测试还是模板为主：核心指令、Repository、ViewModel 和 Compose UI 的有效测试不足。
+- 测试覆盖仍不完整：会话刷新、课表仓库/视图模型和主题模型已有测试，核心指令和 Compose UI 测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。
 
