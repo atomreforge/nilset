@@ -159,7 +159,7 @@ app/src/main/java/net/atomreforge/nilset/
 
 - 构建：release 开启 R8 和 keep rules，补齐签名与 CI 构建。
 - 质量：为核心指令、会话仓库、ViewModel 补单元测试，再补 Compose UI 测试。
-- 工程：接入 CI、静态检查、依赖更新和构建缓存。
+- 工程：在 CI 基础上接入静态检查、依赖更新和构建缓存优化。
 - 发布：崩溃上报、baseline profile、版本签名和发布流水线。
 
 ## 8. 落地路线图
@@ -170,7 +170,7 @@ app/src/main/java/net/atomreforge/nilset/
 - **Phase 3（已完成）**：指令系统重构为命令接口、注册表、结构化结果和 debug 门控。
 - **Phase 4（已完成）**：迁移到 Jetpack Compose、Material 3、单 Activity 和 Navigation。
 - **Phase 5（已完成）**：用 Hilt 替代手动 DI，建立 Hilt/KSP 构建链路。
-- **Phase 6（进行中）**：访问令牌自动刷新已接入，仍需补有效测试和 CI。
+- **Phase 6（进行中）**：访问令牌自动刷新和 CI 已接入，仍需补有效测试。
 - **Phase 7**：完善发布工程化，包括 R8、签名、崩溃上报和性能优化。
 - **后续产品方向**：课表共享、共同空闲时间计算、随机抽签、分组和其他操作入口模块。
 

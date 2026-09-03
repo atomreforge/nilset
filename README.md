@@ -151,7 +151,7 @@ theme:
 ## 项目状态
 
 - Phase 0-5 已完成：架构分层、ViewModel、会话持久化、指令系统、Compose 和 Hilt。
-- Phase 6 进行中：主页/设置壳层、令牌自动刷新和文件日志已接入，仍需补测试和 CI。
+- Phase 6 进行中：主页/设置壳层、令牌自动刷新、文件日志和 CI 已接入，仍需补有效测试。
 - Phase 7 计划完善发布工程化，包括 R8、签名、崩溃上报和 baseline profile。
 
 架构设计与阶段规划见 [ARCHITECTURE.md](ARCHITECTURE.md)。
