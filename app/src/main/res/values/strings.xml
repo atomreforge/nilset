@@ -48,6 +48,17 @@
     <string name="theme_invalid_color">格式：#RRGGBB</string>
     <string name="settings_open_console">打开控制台</string>
     <string name="home_schedule_empty">课表共建待补充</string>
+    <string name="schedule_greeting">%1$s，%2$s！</string>
+    <string name="schedule_next_course_today">接下来的课程是：%1$s %2$s-%3$s</string>
+    <string name="schedule_next_course_tomorrow">今天没有课了；明天第一节课：%1$s %2$s-%3$s</string>
+    <string name="schedule_today_finished">今天没有课了</string>
+    <string name="schedule_no_courses">还没有课程</string>
+    <string name="schedule_day_empty">这天没有课程</string>
+    <string name="schedule_member_menu">切换查看对象</string>
+    <string name="schedule_refresh">刷新课表</string>
+    <string name="schedule_load_failed">课表加载失败，请下拉重试</string>
+    <string name="schedule_not_logged_in">请先登录后查看课表</string>
+    <string name="schedule_retry">重试</string>
     <string name="home_note_empty">随心记待补充</string>
     <string name="home_todo_empty">待办事项待补充</string>
     <string name="home_settings_empty">设置待补充</string>

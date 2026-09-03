@@ -28,6 +28,8 @@ import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
 import net.atomreforge.nilset.data.repository.CalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
+import net.atomreforge.nilset.data.repository.PreferencesScheduleViewRepository
+import net.atomreforge.nilset.data.repository.ScheduleViewRepository
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
 import net.atomreforge.nilset.data.remote.interceptor.TokenAuthenticator
@@ -43,6 +45,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
+import java.time.Clock
 import javax.inject.Singleton
 
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -93,6 +96,10 @@ object AppModule {
         ignoreUnknownKeys = true
         coerceInputValues = true
     }
+
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = Clock.systemDefaultZone()
 
     @Provides
     @Singleton
@@ -174,4 +181,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCalendarRepository(impl: RemoteCalendarRepository): CalendarRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindScheduleViewRepository(
+        impl: PreferencesScheduleViewRepository,
+    ): ScheduleViewRepository
 }

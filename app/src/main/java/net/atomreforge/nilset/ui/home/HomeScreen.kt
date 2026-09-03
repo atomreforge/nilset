@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.calendar.CalendarScreen
+import net.atomreforge.nilset.ui.schedule.ScheduleScreen
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 import net.atomreforge.nilset.ui.theme.themeDrawerMaskColor
 
@@ -202,9 +203,11 @@ fun HomeScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                if (selectedDestination == 1) {
+            if (selectedDestination == 1) {
                     CalendarScreen()
-                } else {
+            } else if (selectedDestination == 4) {
+                ScheduleScreen()
+            } else {
                     Text(
                         text = destinationDetails[selectedDestination],
                         style = MaterialTheme.typography.bodyLarge,
