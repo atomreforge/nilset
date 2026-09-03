@@ -6,21 +6,27 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import net.atomreforge.nilset.const.SessionStoreKeys
 import kotlinx.coroutines.flow.first
+import net.atomreforge.nilset.const.SessionStoreKeys
 import javax.inject.Inject
-import javax.inject.Singleton
+
+interface SessionDataStore {
+    suspend fun save(state: SessionState)
+
+    suspend fun load(): SessionState?
+
+    suspend fun clear()
+}
 
 /**
  * 会话持久化：负责把 [SessionState] 读写到 DataStore。
  * 独立于 Repository，单一职责：只管「存」和「取」，不做业务判断。
  */
-@Singleton
-class SessionDataStore @Inject constructor(
+class PreferencesSessionDataStore @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-) {
+) : SessionDataStore {
 
-    suspend fun save(state: SessionState) {
+    override suspend fun save(state: SessionState) {
         dataStore.edit { prefs ->
             prefs[IS_LOGGED_IN] = state.isLoggedIn
             prefs[IS_SPECIAL_MODE] = state.isSpecialMode
@@ -50,7 +56,7 @@ class SessionDataStore @Inject constructor(
         }
     }
 
-    suspend fun load(): SessionState? {
+    override suspend fun load(): SessionState? {
         val prefs = dataStore.data.first()
         if (prefs[IS_LOGGED_IN] != true && prefs[ACCESS_TOKEN] == null) return null
         val accessToken = prefs[ACCESS_TOKEN]
@@ -77,11 +83,11 @@ class SessionDataStore @Inject constructor(
         )
     }
 
-    suspend fun clear() {
+    override suspend fun clear() {
         dataStore.edit { it.clear() }
     }
 
-    companion object {
+    private companion object {
         private val IS_LOGGED_IN = booleanPreferencesKey(SessionStoreKeys.IS_LOGGED_IN)
         private val IS_SPECIAL_MODE = booleanPreferencesKey(SessionStoreKeys.IS_SPECIAL_MODE)
         private val ACCESS_TOKEN = stringPreferencesKey(SessionStoreKeys.ACCESS_TOKEN)

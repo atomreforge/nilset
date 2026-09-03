@@ -1,15 +1,18 @@
 package net.atomreforge.nilset.di
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import android.content.Context
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.BuildConfig
 import net.atomreforge.nilset.core.command.CommandRegistry
@@ -27,8 +30,10 @@ import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
 import net.atomreforge.nilset.data.remote.interceptor.TokenAuthenticator
 import net.atomreforge.nilset.data.repository.RemoteSessionRepository
+import net.atomreforge.nilset.data.repository.SessionScope
 import net.atomreforge.nilset.data.repository.SessionRepository
 import net.atomreforge.nilset.data.repository.SessionTokenRefresher
+import net.atomreforge.nilset.data.session.PreferencesSessionDataStore
 import net.atomreforge.nilset.data.session.SessionDataStore
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -39,7 +44,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "nilset_session"
+    name = "nilset_session",
 )
 
 private class HttpLogBridge(private val appLogger: AppLogger) : HttpLoggingInterceptor.Logger {
@@ -64,6 +69,16 @@ private class HttpLogBridge(private val appLogger: AppLogger) : HttpLoggingInter
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    @SessionScope
+    fun provideSessionScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Provides
+    @Singleton
+    fun provideSessionDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.sessionDataStore
 
     @Provides
     @Singleton
@@ -122,11 +137,6 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSessionDataStore(@ApplicationContext context: Context): SessionDataStore =
-        SessionDataStore(context.sessionDataStore)
-
-    @Provides
-    @Singleton
     fun provideCommandRegistry(): CommandRegistry = CommandRegistry(
         commands = listOf(
             NoLoginCommand(),
@@ -154,4 +164,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSessionTokenRefresher(impl: RemoteSessionRepository): SessionTokenRefresher
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionDataStore(impl: PreferencesSessionDataStore): SessionDataStore
 }

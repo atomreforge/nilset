@@ -170,7 +170,7 @@ app/src/main/java/net/atomreforge/nilset/
 - **Phase 3（已完成）**：指令系统重构为命令接口、注册表、结构化结果和 debug 门控。
 - **Phase 4（已完成）**：迁移到 Jetpack Compose、Material 3、单 Activity 和 Navigation。
 - **Phase 5（已完成）**：用 Hilt 替代手动 DI，建立 Hilt/KSP 构建链路。
-- **Phase 6（进行中）**：访问令牌自动刷新和 CI 已接入，仍需补有效测试。
+- **Phase 6（已完成）**：访问令牌自动刷新、CI 和核心会话链路测试已接入。
 - **Phase 7**：完善发布工程化，包括 R8、签名、崩溃上报和性能优化。
 - **后续产品方向**：课表共享、共同空闲时间计算、随机抽签、分组和其他操作入口模块。
 

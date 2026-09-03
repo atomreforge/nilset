@@ -2,7 +2,6 @@ package net.atomreforge.nilset.data.repository
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.io.IOException
 import retrofit2.HttpException
@@ -29,9 +28,9 @@ import javax.inject.Singleton
 class RemoteSessionRepository @Inject constructor(
     private val api: DaizyNightApi,
     private val dataStore: SessionDataStore,
+    @param:SessionScope private val scope: CoroutineScope,
 ) : SessionRepository, SessionTokenRefresher {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _sessionState = MutableStateFlow(SessionState())
     override val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
     private val _isSessionReady = MutableStateFlow(false)
@@ -62,7 +61,7 @@ class RemoteSessionRepository @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             _sessionState.value = SessionState()
-            scope.launch { dataStore.clear() }
+            dataStore.clear()
             Result.failure(toLoginMessage(e))
         }
     }
