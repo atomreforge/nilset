@@ -481,6 +481,7 @@ private fun ThemeCustomBackgroundCard(
             onValueChange = { value -> opacity = value },
             onValueChangeFinished = { onOpacityChange(opacity) },
             valueRange = UserThemeSettings.MIN_BACKGROUND_OPACITY..UserThemeSettings.MAX_BACKGROUND_OPACITY,
+            enabled = settings.backgroundImageUri != null,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
