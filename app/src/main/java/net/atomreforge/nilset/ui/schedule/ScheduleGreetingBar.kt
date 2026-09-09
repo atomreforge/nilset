@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import net.atomreforge.nilset.ui.theme.themeContainerColor
+import net.atomreforge.nilset.ui.theme.themeDrawerMaskColor
 
 @Composable
 fun ScheduleGreetingBar(
@@ -76,7 +77,7 @@ fun ScheduleGreetingBar(
                 DropdownMenu(
                     expanded = memberMenuExpanded,
                     onDismissRequest = { memberMenuExpanded = false },
-                    containerColor = themeContainerColor(),
+                    containerColor = themeDrawerMaskColor(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.width(180.dp),
                 ) {
