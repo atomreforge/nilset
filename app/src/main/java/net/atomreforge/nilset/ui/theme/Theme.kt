@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -32,6 +33,10 @@ fun defaultDarkColorScheme() = darkColorScheme(
     onSurfaceVariant = OnDarkSurfaceVariant,
     outline = OutlineDark,
 )
+
+val LocalCardMaskOpacity = staticCompositionLocalOf {
+    UserThemeSettings.DEFAULT_CARD_MASK_OPACITY
+}
 
 @Composable
 fun ATOMTheme(
@@ -75,7 +80,10 @@ fun ATOMTheme(
         fontScale = currentDensity.fontScale * settings.effectiveTextScale,
     )
 
-    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+    CompositionLocalProvider(
+        LocalDensity provides scaledDensity,
+        LocalCardMaskOpacity provides settings.effectiveCardMaskOpacity,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AppThemeConfig.Default.typography,
@@ -138,7 +146,7 @@ private fun UserThemeSettings.toColorScheme(useDark: Boolean): ColorScheme {
 fun themeContainerColor(): Color {
     val background = MaterialTheme.colorScheme.background
     val adjustmentTarget = if (background.luminance() < 0.5f) Color.White else Color.Black
-    return background.blend(adjustmentTarget, 0.24f).copy(alpha = 0.22f)
+    return background.blend(adjustmentTarget, 0.24f).copy(alpha = LocalCardMaskOpacity.current)
 }
 
 @Composable

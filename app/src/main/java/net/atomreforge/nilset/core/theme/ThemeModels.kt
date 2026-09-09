@@ -140,6 +140,7 @@ data class UserThemeSettings(
     val backgroundImageUri: String? = null,
     val backgroundOpacity: Float = DEFAULT_BACKGROUND_OPACITY,
     val showCardBorders: Boolean = true,
+    val cardMaskOpacity: Float = DEFAULT_CARD_MASK_OPACITY,
     val textScaleEnabled: Boolean = false,
     val textScale: Float = 1f,
     val uiScaleEnabled: Boolean = false,
@@ -156,6 +157,9 @@ data class UserThemeSettings(
 
     val effectiveUiScale: Float
         get() = if (uiScaleEnabled) uiScale.coerceIn(MIN_SCALE, MAX_SCALE) else 1f
+
+    val effectiveCardMaskOpacity: Float
+        get() = cardMaskOpacity.coerceIn(MIN_CARD_MASK_OPACITY, MAX_CARD_MASK_OPACITY)
 
     fun usesDarkTheme(): Boolean {
         return when (mode) {
@@ -185,6 +189,9 @@ data class UserThemeSettings(
         const val MIN_BACKGROUND_OPACITY = 0f
         const val MAX_BACKGROUND_OPACITY = 1f
         const val DEFAULT_BACKGROUND_OPACITY = 1f
+        const val MIN_CARD_MASK_OPACITY = 0f
+        const val MAX_CARD_MASK_OPACITY = 1f
+        const val DEFAULT_CARD_MASK_OPACITY = 0.23f
         val FALLBACK_LIGHT_COLORS = ThemePreset.MAPLE.lightColors!!
         val FALLBACK_DARK_COLORS = ThemePreset.MAPLE.darkColors!!
     }

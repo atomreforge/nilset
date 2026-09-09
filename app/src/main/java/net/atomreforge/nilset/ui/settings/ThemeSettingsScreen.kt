@@ -142,6 +142,14 @@ fun ThemeSettingsScreen(
                 settings = settings,
                 onChange = viewModel::setCardBorders,
             )
+            ThemeCardOpacityControl(
+                opacity = settings.cardMaskOpacity,
+                showBorder = settings.showCardBorders,
+                onOpacityChange = viewModel::setCardMaskOpacity,
+                onReset = {
+                    viewModel.setCardMaskOpacity(UserThemeSettings.DEFAULT_CARD_MASK_OPACITY)
+                },
+            )
 
             Text(
                 text = stringResource(R.string.theme_palette),
@@ -395,6 +403,7 @@ private fun ThemeScaleControl(
                     sliderValue = value
                 },
                 onValueChangeFinished = {
+                    sliderValue = sliderValue.snapToPercentage()
                     onScaleChange(sliderValue)
                 },
                 valueRange = UserThemeSettings.MIN_SCALE..UserThemeSettings.MAX_SCALE,
@@ -415,6 +424,84 @@ private fun ThemeScaleControl(
             )
         }
     }
+}
+
+@Composable
+private fun ThemeCardOpacityControl(
+    opacity: Float,
+    showBorder: Boolean,
+    onOpacityChange: (Float) -> Unit,
+    onReset: () -> Unit,
+) {
+    var sliderValue by remember(opacity) {
+        mutableStateOf(opacity)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = themeContainerColor(),
+        border = if (showBorder) {
+            BorderStroke(1.dp, themeContainerBorderColor())
+        } else {
+            null
+        },
+    ) {
+        Column {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.theme_card_opacity)) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_opacity),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                trailingContent = {
+                    IconButton(
+                        onClick = onReset,
+                        modifier = Modifier.size(38.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_reset),
+                            contentDescription = stringResource(R.string.theme_reset_card_opacity),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                },
+            )
+            Slider(
+                value = sliderValue,
+                onValueChange = { value ->
+                    sliderValue = value
+                },
+                onValueChangeFinished = {
+                    sliderValue = sliderValue.snapToPercentage()
+                    onOpacityChange(sliderValue)
+                },
+                valueRange = UserThemeSettings.MIN_CARD_MASK_OPACITY..UserThemeSettings.MAX_CARD_MASK_OPACITY,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            )
+            Text(
+                text = stringResource(
+                    R.string.theme_card_opacity_percent,
+                    (sliderValue * 100).roundToInt(),
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = 20.dp, bottom = 10.dp),
+            )
+        }
+    }
+}
+
+private fun Float.snapToPercentage(): Float {
+    return (this * 100).roundToInt() / 100f
 }
 
 @Composable
@@ -475,7 +562,10 @@ private fun ThemeCustomBackgroundCard(
         Slider(
             value = opacity,
             onValueChange = { value -> opacity = value },
-            onValueChangeFinished = { onOpacityChange(opacity) },
+            onValueChangeFinished = {
+                opacity = opacity.snapToPercentage()
+                onOpacityChange(opacity)
+            },
             valueRange = UserThemeSettings.MIN_BACKGROUND_OPACITY..UserThemeSettings.MAX_BACKGROUND_OPACITY,
             enabled = settings.backgroundImageUri != null,
             modifier = Modifier.fillMaxWidth(),

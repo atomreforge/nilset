@@ -30,6 +30,7 @@ class ThemeModelsTest {
             }
         }
         assertEquals(true, UserThemeSettings().showCardBorders)
+        assertEquals(0.23f, UserThemeSettings().cardMaskOpacity)
     }
 
     @Test
@@ -100,11 +101,20 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `card mask opacity is clamped`() {
+        val settings = UserThemeSettings(cardMaskOpacity = 1.4f)
+
+        assertEquals(1f, settings.effectiveCardMaskOpacity)
+        assertEquals(0f, settings.copy(cardMaskOpacity = -0.2f).effectiveCardMaskOpacity)
+    }
+
+    @Test
     fun `theme settings serialize and deserialize`() {
         val settings = UserThemeSettings(
             mode = ThemeMode.DARK,
             paletteId = ThemePreset.JADE.id,
             showCardBorders = false,
+            cardMaskOpacity = 0.65f,
             customLightColors = ThemeColors("#123456", "#654321", "#EEEEEE", "#FFFFFF"),
             customDarkColors = ThemeColors("#ABCDEF", "#123456", "#111111", "#222222"),
         )

@@ -102,6 +102,17 @@ class ThemeRepository @Inject constructor(
         update { it.copy(showCardBorders = enabled) }
     }
 
+    suspend fun setCardMaskOpacity(opacity: Float) {
+        update {
+            it.copy(
+                cardMaskOpacity = opacity.coerceIn(
+                    UserThemeSettings.MIN_CARD_MASK_OPACITY,
+                    UserThemeSettings.MAX_CARD_MASK_OPACITY,
+                ),
+            )
+        }
+    }
+
     suspend fun setTextScaleEnabled(enabled: Boolean) {
         update { it.copy(textScaleEnabled = enabled) }
     }

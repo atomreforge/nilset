@@ -31,6 +31,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.setCardBorders(enabled) }
     }
 
+    fun setCardMaskOpacity(opacity: Float) {
+        viewModelScope.launch { themeRepository.setCardMaskOpacity(opacity) }
+    }
+
     fun setTextScaleEnabled(enabled: Boolean) {
         viewModelScope.launch { themeRepository.setTextScaleEnabled(enabled) }
     }
