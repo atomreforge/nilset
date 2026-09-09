@@ -1,6 +1,8 @@
 package net.atomreforge.nilset.ui.schedule
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,17 +14,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 
 @Composable
 fun ScheduleCourseList(
-    courses: List<net.atomreforge.nilset.data.calendar.CalendarItem>,
+    courses: List<CalendarItem>,
+    canModify: Boolean,
+    onEditCourse: (CalendarItem) -> Unit,
+    onDeleteCourse: (CalendarItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (courses.isEmpty()) {
@@ -31,6 +42,11 @@ fun ScheduleCourseList(
             modifier = modifier,
         )
         return
+    }
+
+    var selectedCourseIndex by remember { mutableStateOf(-1) }
+    LaunchedEffect(courses) {
+        selectedCourseIndex = -1
     }
 
     Surface(
@@ -46,28 +62,111 @@ fun ScheduleCourseList(
                         color = themeContainerBorderColor().copy(alpha = 0.45f),
                     )
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = course.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
+                if (canModify) {
+                    LongPressCourseRow(
+                        course = course,
+                        isActionMenuVisible = selectedCourseIndex == index,
+                        onLongPress = { selectedCourseIndex = index },
+                        onDismiss = { selectedCourseIndex = -1 },
+                        onEditCourse = onEditCourse,
+                        onDeleteCourse = onDeleteCourse,
                     )
-                    Text(
-                        text = "${ScheduleCourseSelector.formatTime(course.startMin)}-" +
-                            ScheduleCourseSelector.formatTime(course.endMin),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                } else {
+                    ScheduleCourseRow(course = course)
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LongPressCourseRow(
+    course: CalendarItem,
+    isActionMenuVisible: Boolean,
+    onLongPress: () -> Unit,
+    onDismiss: () -> Unit,
+    onEditCourse: (CalendarItem) -> Unit,
+    onDeleteCourse: (CalendarItem) -> Unit,
+) {
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onDismiss,
+                    onLongClick = onLongPress,
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ScheduleCourseRowContent(
+                course = course,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        if (isActionMenuVisible) {
+            ScheduleCourseActionMenu(
+                onEdit = {
+                    onDismiss()
+                    onEditCourse(course)
+                },
+                onDelete = {
+                    onDismiss()
+                    onDeleteCourse(course)
+                },
+                onDismiss = onDismiss,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScheduleCourseRow(course: CalendarItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ScheduleCourseRowContent(
+            course = course,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ScheduleCourseRowContent(
+    course: CalendarItem,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = course.title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        val details = listOfNotNull(
+            course.teacher,
+            course.classroom,
+            course.note,
+        ).joinToString(" · ")
+        if (details.isNotEmpty()) {
+            Text(
+                text = details,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    Text(
+        text = "${ScheduleCourseSelector.formatTime(course.startMin)}-" +
+            ScheduleCourseSelector.formatTime(course.endMin),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

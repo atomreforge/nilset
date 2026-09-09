@@ -1,6 +1,7 @@
 package net.atomreforge.nilset.data.repository
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
@@ -15,6 +16,7 @@ import net.atomreforge.nilset.data.remote.dto.RegisterResponse
 import net.atomreforge.nilset.data.remote.dto.SignOutRequest
 import net.atomreforge.nilset.data.remote.dto.UserInfoResponse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,15 +51,32 @@ class RemoteCalendarRepositoryTest {
         val api = FakeCalendarApi()
         val repository = RemoteCalendarRepository(api)
         val records = listOf(
-            CalendarItem(weekday = 0, startMin = 600, endMin = 690, title = "自习"),
+            CalendarItem(
+                weekday = 0,
+                startMin = 480,
+                endMin = 570,
+                title = "数学",
+                teacher = "张老师",
+                classroom = "A301",
+                note = "带计算器",
+            ),
         )
 
         val result = repository.saveCalendar("alice", records)
 
         assertTrue(result.isSuccess)
-        assertEquals(records, api.savedCalendar?.records?.map { response ->
-            CalendarItem(response.weekday, response.startMin, response.endMin, response.title)
-        })
+        assertEquals("alice", api.requestedUsernames.single())
+        assertEquals(0, api.savedCalendar?.records?.single()?.weekday)
+        assertEquals(480, api.savedCalendar?.records?.single()?.startMin)
+        assertEquals(570, api.savedCalendar?.records?.single()?.endMin)
+        assertEquals("数学", api.savedCalendar?.records?.single()?.title)
+
+        val serializedBody = api.savedCalendar?.let {
+            Json.encodeToString(CalendarPutRequest.serializer(), it)
+        }
+        assertFalse(serializedBody?.contains("teacher") ?: true)
+        assertFalse(serializedBody?.contains("classroom") ?: true)
+        assertFalse(serializedBody?.contains("note") ?: true)
     }
 
     @Test

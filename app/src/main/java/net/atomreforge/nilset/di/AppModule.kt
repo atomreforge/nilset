@@ -27,7 +27,10 @@ import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
 import net.atomreforge.nilset.data.repository.CalendarRepository
+import net.atomreforge.nilset.data.repository.LocalCalendarSource
+import net.atomreforge.nilset.data.repository.PreferencesLocalCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
+import net.atomreforge.nilset.data.repository.RemoteCalendarSource
 import net.atomreforge.nilset.data.repository.PreferencesScheduleViewRepository
 import net.atomreforge.nilset.data.repository.ScheduleViewRepository
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
@@ -180,7 +183,21 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindCalendarRepository(impl: RemoteCalendarRepository): CalendarRepository
+    abstract fun bindCalendarRepository(impl: PreferencesLocalCalendarRepository): CalendarRepository
+
+    @Binds
+    @LocalCalendarSource
+    @Singleton
+    abstract fun bindLocalCalendarSource(
+        impl: PreferencesLocalCalendarRepository,
+    ): CalendarRepository
+
+    @Binds
+    @RemoteCalendarSource
+    @Singleton
+    abstract fun bindRemoteCalendarSource(
+        impl: RemoteCalendarRepository,
+    ): CalendarRepository
 
     @Binds
     @Singleton

@@ -7,6 +7,18 @@ data class ScheduleMember(
     val isSelf: Boolean,
 )
 
+data class ScheduleCourseDraft(
+    val title: String,
+    val weekday: Int,
+    val startHour: Int,
+    val startMinute: Int,
+    val endHour: Int,
+    val endMinute: Int,
+    val teacher: String,
+    val classroom: String,
+    val note: String,
+)
+
 enum class ScheduleNextCourseKind {
     EMPTY,
     TODAY,
@@ -32,5 +44,10 @@ data class ScheduleUiState(
     val selectedCourses: List<CalendarItem> = emptyList(),
     val nextCourse: ScheduleNextCourse = ScheduleNextCourse(),
     val greetingHour: Int = 12,
+    val isLocalSchedule: Boolean = false,
+    val isCourseEditorVisible: Boolean = false,
+    val editingCourse: CalendarItem? = null,
+    val isSavingCourse: Boolean = false,
+    val courseEditorError: String? = null,
     val errorMessage: String? = null,
 )

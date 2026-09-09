@@ -33,6 +33,8 @@ private val weekdayTitles = listOf(
     R.string.calendar_weekday_sunday,
 )
 
+private val weekdayValues = listOf(1, 2, 3, 4, 5, 6, 0)
+
 @Composable
 fun ScheduleWeekdayTabs(
     selectedWeekday: Int,
@@ -50,7 +52,7 @@ fun ScheduleWeekdayTabs(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             weekdayTitles.forEachIndexed { index, titleRes ->
-                val weekday = index + 1
+                val weekday = weekdayValues[index]
                 val isSelected = weekday == selectedWeekday
                 Box(
                     modifier = Modifier

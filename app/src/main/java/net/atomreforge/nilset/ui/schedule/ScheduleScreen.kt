@@ -68,6 +68,16 @@ fun ScheduleScreen(
                 onSelect = viewModel::selectWeekday,
             )
 
+            if (state.isLocalSchedule) {
+                Button(
+                    onClick = viewModel::showCourseEditor,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(text = stringResource(R.string.schedule_add_course))
+                }
+            }
+
             state.errorMessage?.let { message ->
                 ScheduleErrorCard(
                     message = message,
@@ -77,9 +87,20 @@ fun ScheduleScreen(
 
             ScheduleCourseList(
                 courses = state.selectedCourses,
+                canModify = state.isLocalSchedule,
+                onEditCourse = viewModel::showEditCourse,
+                onDeleteCourse = viewModel::deleteCourse,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    if (state.isCourseEditorVisible) {
+        ScheduleCourseEditor(
+            state = state,
+            onDismiss = viewModel::dismissCourseEditor,
+            onSubmit = viewModel::saveCourse,
+        )
     }
 }
 

@@ -64,7 +64,7 @@ Data 层
 - 每次 App 进程启动会在 `files/logs` 创建 `session-<序号>-<时间>.log`，序号按已有日志文件最大序号递增。
 - HTTP 日志由 OkHttp 拦截器接入并按状态分级着色。
 - `ConfigLoader.mustLoad()` 加载强类型 YAML 配置，解析或校验失败会快速失败。
-- `CalendarRepository` 通过属主校验路径读取个人课表；`ScheduleViewModel` 负责按星期筛选、排序和计算下一节课。
+- `CalendarRepository` 分成本地与远端数据源：当前登录用户的课表在远端 PUT 成功后由 `PreferencesLocalCalendarRepository` 在 DataStore 中按用户缓存，缺失时返回空表；远端仓库用于课表同步和他人课表数据源。`ScheduleViewModel` 负责选择数据源、创建/编辑/删除当前用户课程并触发全量 PUT、按星期筛选、排序和计算下一节课。
 - 课表共建页的成员列表目前是只含登录用户的临时占位，等待服务端成员与多人课表 API。
 
 ### Core 层
@@ -94,8 +94,9 @@ Data 层
 
 ### 课表
 
-- `GET /api/v1/user/{username}/calendar` 读取当前认证用户的全量周课表。
-- 客户端数据模型使用 `weekday`、`startMin`、`endMin` 和 `title`，展示层负责把分钟转换为 `HH:mm`。
+- 当前用户的本地课表以 JSON 片段保存在 `nilset_schedule` DataStore；本地记录不存在时显示空课表。
+- `GET /api/v1/user/{username}/calendar` 保留为后续他人课表读取链路，当前成员列表仍只有登录用户。
+- 客户端数据模型使用 `weekday`、`startMin`、`endMin`、`title`、`teacher`、`classroom` 和 `note`，展示层负责把分钟转换为 `HH:mm`；当前用户本地课表会固定写出老师、课室和备注字段。
 - 服务端尚未提供成员列表、他人课表和多人共享能力；客户端成员菜单不伪造数据。
 
 ### 指令
@@ -150,7 +151,7 @@ app/src/main/java/net/atomreforge/nilset/
 | 导航 | Navigation Compose | 单 Activity + `NavHost` |
 | 异步 | Coroutines + Flow | ViewModel、Repository 和网络层统一使用 |
 | DI | Hilt 2.59 + KSP 2.3.11 | 适配 AGP 9 内建 Kotlin |
-| 持久化 | DataStore Preferences | 保存会话、主题和课表查看偏好，Room 尚未引入 |
+| 持久化 | DataStore Preferences | 保存会话、主题、当前用户本地课表和课表查看偏好，Room 尚未引入 |
 | 网络 | Retrofit + OkHttp + kotlinx.serialization | 连接 Daizy Night 服务端 |
 | 配置 | KAML + 强类型 data class | YAML fail-fast 加载 |
 | 构建 | Gradle Version Catalog + AGP 9 | 单模块工程 |
@@ -160,7 +161,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 没有独立 Domain 层：当前业务规模较小，UseCase 仍按需后置。
 - 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
-- 课表共建页已接入个人课表 GET 读取链路；服务端当前只允许属主访问，成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
+- 课表共建页当前用户课表为本地创建和本地持久化；远端个人课表读取链路保留，但成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
 - 侧边栏日历当前只是独立月历浏览视图，不加载课表或日程数据，也不提供日期详情。
 - 测试覆盖仍不完整：会话刷新、课表仓库/视图模型和主题模型已有测试，核心指令和 Compose UI 测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。

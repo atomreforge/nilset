@@ -27,7 +27,7 @@ object ScheduleCourseSelector {
     ): ScheduleNextCourse {
         if (records.isEmpty()) return ScheduleNextCourse(kind = ScheduleNextCourseKind.EMPTY)
 
-        val todayCourse = coursesFor(records, today.dayOfWeek.value)
+        val todayCourse = coursesFor(records, today.dayOfWeek.value % 7)
         todayCourse.firstOrNull { it.startMin > minuteOfDay }?.let { course ->
             return ScheduleNextCourse(
                 kind = ScheduleNextCourseKind.TODAY,
@@ -37,7 +37,7 @@ object ScheduleCourseSelector {
             )
         }
 
-        val tomorrowWeekday = today.dayOfWeek.value.rem(7) + 1
+        val tomorrowWeekday = today.plusDays(1).dayOfWeek.value % 7
         val tomorrowFirst = coursesFor(records, tomorrowWeekday).firstOrNull()
         return if (tomorrowFirst == null) {
             ScheduleNextCourse(kind = ScheduleNextCourseKind.TODAY_FINISHED)

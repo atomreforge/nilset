@@ -11,12 +11,12 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 ### 当前能力
 
 - 登录与注册 API 接入。
-- 基于 DataStore 的会话、主题和课表查看偏好持久化，应用重启后可恢复状态。
+- 基于 DataStore 的会话、主题、当前用户本地课表和课表查看偏好持久化，应用重启后可恢复状态。
 - 类终端控制台页面，支持内部指令扩展。
 - 控制台指令候选补齐、进程内历史保留和会话级文件日志。
 - 登录后的主页与设置页底边栏导航；主页提供侧边栏功能入口。
 - 主页侧边栏提供独立日历月历视图，支持按月切换和今天高亮；当前不与课表数据关联。
-- 课表共建页已接入个人课表 GET 接口，提供问候、下一节课提示、星期筛选、课程列表和下拉刷新；成员列表目前为临时占位，只显示当前登录用户，多人共享待服务端提供 API。
+- 课表共建页当前用户的课表通过服务端 PUT 全量同步，本地 DataStore 保存缓存；支持创建和编辑课程（标题、星期、分段时间、老师、课室和备注）、长按课程删除、问候、下一节课提示、星期筛选、课程列表和下拉刷新。PUT 暂只提交服务端已有的标题、星期和时间字段。成员列表目前为临时占位，只显示当前登录用户，多人共享和他人课表读取待服务端提供 API。
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
 - Material 3 主题、自定义字体和可扩展的主题配置。
@@ -94,8 +94,6 @@ api:
 - `POST /api/v1/refresh-access-token`
 - `GET /api/v1/user/{username}/me`
 - `GET /api/v1/user/{username}/calendar`
-- `PUT /api/v1/user/{username}/calendar`
-- `DELETE /api/v1/user/{username}/calendar`
 - `POST /api/v1/user/signout`
 
 访问令牌 401 后会按 `auth.autoRefresh` 使用 refresh token 自动换发；当前默认启用。
