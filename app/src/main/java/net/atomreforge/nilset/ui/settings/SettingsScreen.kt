@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -15,11 +16,15 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -28,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
@@ -45,6 +51,8 @@ fun SettingsScreen(
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val serverConnection by viewModel.serverConnection.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     val modeLabel = stringResource(
         when (themeSettings.mode) {
             ThemeMode.LIGHT -> R.string.theme_mode_light
@@ -53,6 +61,7 @@ fun SettingsScreen(
     )
     Scaffold(
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
@@ -62,9 +71,26 @@ fun SettingsScreen(
                 actions = {
                     val isRetryEnabled = serverConnection.status == ServerConnectionStatus.DISCONNECTED &&
                         serverConnection.canRetry
+                    val statusMessage = stringResource(
+                        when {
+                            serverConnection.status == ServerConnectionStatus.CONNECTED ->
+                                R.string.settings_server_connected
+                            serverConnection.status == ServerConnectionStatus.CHECKING ->
+                                R.string.settings_server_checking
+                            isRetryEnabled -> R.string.settings_server_retrying
+                            else -> R.string.settings_server_retry_cooldown
+                        },
+                    )
                     IconButton(
-                        onClick = viewModel::retryServerConnection,
-                        enabled = isRetryEnabled,
+                        onClick = {
+                            if (isRetryEnabled) {
+                                viewModel.retryServerConnection()
+                            }
+                            snackbarScope.launch {
+                                snackbarHostState.showSnackbar(statusMessage)
+                            }
+                        },
+                        modifier = Modifier.offset(x = (-6).dp),
                     ) {
                         Icon(
                             painter = painterResource(

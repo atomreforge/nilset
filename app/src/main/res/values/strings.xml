@@ -20,6 +20,8 @@
     <string name="settings_server_connected">已连接服务端</string>
     <string name="settings_server_disconnected">未连接服务端，点击重试</string>
     <string name="settings_server_checking">正在检查服务端</string>
+    <string name="settings_server_retrying">未连接服务端，正在重试</string>
+    <string name="settings_server_retry_cooldown">未连接服务端，请稍后再试</string>
     <string name="settings_theme">主题</string>
     <string name="theme_settings_title">主题设置</string>
     <string name="theme_mode">主题模式</string>
