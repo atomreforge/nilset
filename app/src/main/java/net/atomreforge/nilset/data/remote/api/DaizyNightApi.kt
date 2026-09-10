@@ -41,6 +41,9 @@ interface DaizyNightApi {
         @Body body: CalendarPutRequest,
     ): MessageResponse
 
+    @GET(ApiExpressions.Endpoint.HEALTH_DB)
+    suspend fun healthDb(): MessageResponse
+
     @DELETE(ApiExpressions.Endpoint.CALENDAR)
     suspend fun deleteCalendar(@Path("username") username: String): MessageResponse
 

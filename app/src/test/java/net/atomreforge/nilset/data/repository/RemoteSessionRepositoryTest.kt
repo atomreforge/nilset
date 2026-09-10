@@ -204,6 +204,10 @@ private class FakeDaizyNightApi : DaizyNightApi {
         throw UnsupportedOperationException()
     }
 
+    override suspend fun healthDb(): MessageResponse {
+        throw UnsupportedOperationException()
+    }
+
     override suspend fun putCalendar(
         username: String,
         body: CalendarPutRequest,

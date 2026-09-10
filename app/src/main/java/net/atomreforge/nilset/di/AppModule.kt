@@ -85,6 +85,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Provides
+    @Singleton
     fun provideSessionDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.sessionDataStore
 

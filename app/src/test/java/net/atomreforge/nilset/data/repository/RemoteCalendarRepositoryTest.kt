@@ -129,6 +129,10 @@ private class FakeCalendarApi(
         return calendarResponse
     }
 
+    override suspend fun healthDb(): MessageResponse {
+        throw AssertionError("unexpected health call")
+    }
+
     override suspend fun putCalendar(
         username: String,
         body: CalendarPutRequest,

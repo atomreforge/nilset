@@ -7,6 +7,7 @@ object ApiExpressions {
         const val REFRESH_ACCESS_TOKEN = "api/v1/refresh-access-token"
         const val USER_ME = "api/v1/user/{username}/me"
         const val CALENDAR = "api/v1/user/{username}/calendar"
+        const val HEALTH_DB = "api/v1/health/db"
         const val SIGN_OUT = "api/v1/user/signout"
     }
 

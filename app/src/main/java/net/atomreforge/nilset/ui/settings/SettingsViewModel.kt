@@ -11,13 +11,22 @@ import net.atomreforge.nilset.core.theme.ThemeColors
 import net.atomreforge.nilset.core.theme.ThemeMode
 import net.atomreforge.nilset.core.theme.UserThemeSettings
 import net.atomreforge.nilset.data.repository.ThemeRepository
+import net.atomreforge.nilset.data.remote.ServerConnectionManager
+import net.atomreforge.nilset.data.remote.ServerConnectionUiState
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val themeRepository: ThemeRepository,
+    private val serverConnectionManager: ServerConnectionManager,
 ) : ViewModel() {
     val themeSettings: StateFlow<UserThemeSettings> = themeRepository.settings
+    val serverConnection: StateFlow<ServerConnectionUiState> =
+        serverConnectionManager.uiState
+
+    fun retryServerConnection() {
+        serverConnectionManager.requestManualRetry()
+    }
 
     fun selectPalette(paletteId: String) {
         viewModelScope.launch { themeRepository.selectPalette(paletteId) }

@@ -17,6 +17,9 @@
     <string name="drawer_schedule">课表共建</string>
     <string name="drawer_todo">待办事项</string>
     <string name="settings_title">设置</string>
+    <string name="settings_server_connected">已连接服务端</string>
+    <string name="settings_server_disconnected">未连接服务端，点击重试</string>
+    <string name="settings_server_checking">正在检查服务端</string>
     <string name="settings_theme">主题</string>
     <string name="theme_settings_title">主题设置</string>
     <string name="theme_mode">主题模式</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.core.theme.ThemeMode
+import net.atomreforge.nilset.data.remote.ServerConnectionStatus
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 
@@ -42,6 +44,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
+    val serverConnection by viewModel.serverConnection.collectAsStateWithLifecycle()
     val modeLabel = stringResource(
         when (themeSettings.mode) {
             ThemeMode.LIGHT -> R.string.theme_mode_light
@@ -56,6 +59,36 @@ fun SettingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = themeContainerColor(),
                 ),
+                actions = {
+                    val isRetryEnabled = serverConnection.status == ServerConnectionStatus.DISCONNECTED &&
+                        serverConnection.canRetry
+                    IconButton(
+                        onClick = viewModel::retryServerConnection,
+                        enabled = isRetryEnabled,
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (serverConnection.status == ServerConnectionStatus.CONNECTED) {
+                                    R.drawable.ic_tick
+                                } else {
+                                    R.drawable.ic_cross
+                                },
+                            ),
+                            contentDescription = stringResource(
+                                when (serverConnection.status) {
+                                    ServerConnectionStatus.CONNECTED -> R.string.settings_server_connected
+                                    ServerConnectionStatus.CHECKING -> R.string.settings_server_checking
+                                    else -> R.string.settings_server_disconnected
+                                },
+                            ),
+                            tint = when (serverConnection.status) {
+                                ServerConnectionStatus.CONNECTED -> MaterialTheme.colorScheme.primary
+                                ServerConnectionStatus.CHECKING -> MaterialTheme.colorScheme.onSurfaceVariant
+                                else -> MaterialTheme.colorScheme.error
+                            },
+                        )
+                    }
+                },
                 navigationIcon = {
                     Box(
                         modifier = Modifier.size(48.dp),
