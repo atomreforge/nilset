@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.repository.CalendarRepository
+import net.atomreforge.nilset.data.repository.CalendarSyncManager
 import net.atomreforge.nilset.data.repository.LocalCalendarSource
 import net.atomreforge.nilset.data.repository.RemoteCalendarSource
 import net.atomreforge.nilset.data.repository.ScheduleViewRepository
@@ -26,6 +27,7 @@ class ScheduleViewModel @Inject constructor(
     @param:LocalCalendarSource private val localCalendarRepository: CalendarRepository,
     @param:RemoteCalendarSource private val remoteCalendarRepository: CalendarRepository,
     private val scheduleViewRepository: ScheduleViewRepository,
+    private val calendarSyncManager: CalendarSyncManager,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -74,6 +76,7 @@ class ScheduleViewModel @Inject constructor(
     }
 
     fun showCourseEditor() {
+        if (!_uiState.value.isLocalSchedule) return
         _uiState.update {
             it.copy(
                 isCourseEditorVisible = true,
@@ -154,7 +157,7 @@ class ScheduleViewModel @Inject constructor(
             }.sortedWith(
                 compareBy({ it.weekday }, { it.startMin }, { it.endMin }, { it.title }),
             )
-            persistOwnerCalendar(owner, records).fold(
+            persistLocalCalendar(owner, records).fold(
                 onSuccess = {
                     val now = LocalDateTime.now(clock)
                     val selectedWeekday = _uiState.value.selectedWeekday
@@ -184,6 +187,7 @@ class ScheduleViewModel @Inject constructor(
                     }
                 },
             )
+            syncCalendarIfConnected(owner)
         }
     }
 
@@ -194,7 +198,7 @@ class ScheduleViewModel @Inject constructor(
 
         viewModelScope.launch {
             val records = current.records - course
-            persistOwnerCalendar(owner, records).fold(
+            persistLocalCalendar(owner, records).fold(
                 onSuccess = {
                     val now = LocalDateTime.now(clock)
                     val selectedWeekday = current.selectedWeekday
@@ -217,6 +221,7 @@ class ScheduleViewModel @Inject constructor(
                     }
                 },
             )
+            syncCalendarIfConnected(owner)
         }
     }
 
@@ -229,16 +234,17 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    private suspend fun persistOwnerCalendar(
+    private suspend fun persistLocalCalendar(
         ownerUsername: String,
         records: List<CalendarItem>,
     ): Result<Unit> {
-        val remoteResult = remoteCalendarRepository.saveCalendar(ownerUsername, records)
-        if (remoteResult.isFailure) {
-            return remoteResult
-        }
-
         return localCalendarRepository.saveCalendar(ownerUsername, records)
+    }
+
+    private fun syncCalendarIfConnected(ownerUsername: String) {
+        viewModelScope.launch {
+            calendarSyncManager.syncIfConnected(ownerUsername)
+        }
     }
 
     private suspend fun initialize(ownerUsername: String) {

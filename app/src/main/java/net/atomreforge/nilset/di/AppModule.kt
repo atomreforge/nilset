@@ -27,7 +27,9 @@ import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
 import net.atomreforge.nilset.data.repository.CalendarRepository
+import net.atomreforge.nilset.data.repository.CalendarSyncManager
 import net.atomreforge.nilset.data.repository.LocalCalendarSource
+import net.atomreforge.nilset.data.repository.LocalFirstCalendarSyncManager
 import net.atomreforge.nilset.data.repository.PreferencesLocalCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarSource
@@ -210,4 +212,10 @@ abstract class RepositoryModule {
     abstract fun bindScheduleViewRepository(
         impl: PreferencesScheduleViewRepository,
     ): ScheduleViewRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCalendarSyncManager(
+        impl: LocalFirstCalendarSyncManager,
+    ): CalendarSyncManager
 }

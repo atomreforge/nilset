@@ -14,6 +14,7 @@ import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.calendar.UserCalendar
 import net.atomreforge.nilset.data.remote.interceptor.FakeSessionRepository
 import net.atomreforge.nilset.data.repository.CalendarRepository
+import net.atomreforge.nilset.data.repository.CalendarSyncManager
 import net.atomreforge.nilset.data.repository.ScheduleViewRepository
 import net.atomreforge.nilset.data.session.SessionState
 import org.junit.After
@@ -55,6 +56,7 @@ class ScheduleViewModelTest {
             ),
             remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -81,6 +83,7 @@ class ScheduleViewModelTest {
             ),
             remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -92,18 +95,18 @@ class ScheduleViewModelTest {
     }
 
     @Test
-    fun `create course saves locally and refreshes selected day`() = runTest {
+    fun `create course saves only locally and refreshes selected day`() = runTest {
         val localRepository = FakeCalendarRepository(
             UserCalendar(calendarId = 0L, records = emptyList()),
         )
-        val remoteRepository = RecordingCalendarRepository()
         val viewModel = ScheduleViewModel(
             sessionRepository = FakeSessionRepository(
                 SessionState(isLoggedIn = true, username = "alice"),
             ),
             localCalendarRepository = localRepository,
-            remoteCalendarRepository = remoteRepository,
+            remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -143,8 +146,6 @@ class ScheduleViewModelTest {
             ),
             localRepository.savedRecords,
         )
-        assertEquals("alice", remoteRepository.savedUsernames.single())
-        assertEquals(localRepository.savedRecords, remoteRepository.savedRecords)
     }
 
     @Test
@@ -159,6 +160,7 @@ class ScheduleViewModelTest {
             localCalendarRepository = localRepository,
             remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -185,19 +187,19 @@ class ScheduleViewModelTest {
     }
 
     @Test
-    fun `edit course replaces matching local record`() = runTest {
+    fun `edit course replaces matching local record only`() = runTest {
         val original = schedule(weekday = 4, start = 900)
         val localRepository = FakeCalendarRepository(
             UserCalendar(calendarId = 0L, records = listOf(original)),
         )
-        val remoteRepository = RecordingCalendarRepository()
         val viewModel = ScheduleViewModel(
             sessionRepository = FakeSessionRepository(
                 SessionState(isLoggedIn = true, username = "alice"),
             ),
             localCalendarRepository = localRepository,
-            remoteCalendarRepository = remoteRepository,
+            remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -222,24 +224,22 @@ class ScheduleViewModelTest {
         assertEquals("物理", state.selectedCourses.single().title)
         assertEquals(1, localRepository.savedRecords.count { it.title == "物理" })
         assertEquals(0, localRepository.savedRecords.count { it.title == "体育" })
-        assertEquals("alice", remoteRepository.savedUsernames.single())
-        assertEquals(localRepository.savedRecords, remoteRepository.savedRecords)
     }
 
     @Test
-    fun `delete course removes matching local record`() = runTest {
+    fun `delete course removes matching local record only`() = runTest {
         val original = schedule(weekday = 4, start = 900)
         val localRepository = FakeCalendarRepository(
             UserCalendar(calendarId = 0L, records = listOf(original)),
         )
-        val remoteRepository = RecordingCalendarRepository()
         val viewModel = ScheduleViewModel(
             sessionRepository = FakeSessionRepository(
                 SessionState(isLoggedIn = true, username = "alice"),
             ),
             localCalendarRepository = localRepository,
-            remoteCalendarRepository = remoteRepository,
+            remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -251,8 +251,6 @@ class ScheduleViewModelTest {
         assertEquals(emptyList<CalendarItem>(), state.records)
         assertEquals(emptyList<CalendarItem>(), state.selectedCourses)
         assertEquals(emptyList<CalendarItem>(), localRepository.savedRecords)
-        assertEquals("alice", remoteRepository.savedUsernames.single())
-        assertEquals(emptyList<CalendarItem>(), remoteRepository.savedRecords)
     }
 
     @Test
@@ -269,6 +267,7 @@ class ScheduleViewModelTest {
             ),
             remoteCalendarRepository = unreachableCalendarRepository(),
             scheduleViewRepository = FakeScheduleViewRepository(),
+            calendarSyncManager = FakeCalendarSyncManager(),
             clock = fixedClock(),
         )
         advanceUntilIdle()
@@ -299,6 +298,11 @@ class ScheduleViewModelTest {
     )
 }
 
+private class FakeCalendarSyncManager : CalendarSyncManager {
+    override suspend fun syncIfConnected(ownerUsername: String): Result<Unit> =
+        Result.success(Unit)
+}
+
 private class FakeCalendarRepository(
     private val calendar: UserCalendar,
 ) : CalendarRepository {
@@ -311,26 +315,6 @@ private class FakeCalendarRepository(
         username: String,
         records: List<CalendarItem>,
     ): Result<Unit> {
-        savedRecords.clear()
-        savedRecords.addAll(records)
-        return Result.success(Unit)
-    }
-
-    override suspend fun deleteCalendar(username: String): Result<Unit> = Result.success(Unit)
-}
-
-private class RecordingCalendarRepository : CalendarRepository {
-    val savedUsernames = mutableListOf<String>()
-    val savedRecords = mutableListOf<CalendarItem>()
-
-    override suspend fun getCalendar(username: String): Result<UserCalendar> =
-        Result.success(UserCalendar(calendarId = 0L, records = emptyList()))
-
-    override suspend fun saveCalendar(
-        username: String,
-        records: List<CalendarItem>,
-    ): Result<Unit> {
-        savedUsernames.add(username)
         savedRecords.clear()
         savedRecords.addAll(records)
         return Result.success(Unit)
