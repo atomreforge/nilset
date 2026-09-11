@@ -3,6 +3,8 @@ package net.atomreforge.nilset.ui.home
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -207,6 +211,8 @@ fun HomeScreen(
                     CalendarScreen()
             } else if (selectedDestination == 4) {
                 ScheduleScreen()
+            } else if (selectedDestination == 0) {
+                HomeTextContent()
             } else {
                     Text(
                         text = destinationDetails[selectedDestination],
@@ -216,6 +222,32 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HomeTextContent(
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
+    val textState by viewModel.homeText.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = when (textState) {
+                HomeTextUiState.Loading -> stringResource(R.string.home_text_loading)
+                is HomeTextUiState.Success -> (textState as HomeTextUiState.Success).text
+                HomeTextUiState.Error -> stringResource(R.string.home_text_load_failed)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        )
     }
 }
 

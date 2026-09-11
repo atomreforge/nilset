@@ -9,6 +9,49 @@ import net.atomreforge.nilset.const.CommandExpressions
  */
 class NilSetCommandCenter(private val registry: CommandRegistry) {
 
+    fun complete(input: String, cursor: Int): List<CommandCompletionCandidate> {
+        if (!input.startsWith(CommandExpressions.PREFIX)) {
+            return emptyList()
+        }
+
+        if (input.removePrefix(CommandExpressions.PREFIX).isBlank()) {
+            return commandNameCandidates(
+                prefix = "",
+                replacementStart = 0,
+                replacementEnd = input.length,
+            )
+        }
+
+        val parsed = CommandInputParser.parse(input, cursor) ?: return emptyList()
+        if (parsed.isCompletingCommandName) {
+            return commandNameCandidates(
+                prefix = parsed.currentPrefix.orEmpty(),
+                replacementStart = parsed.commandNameRange.first,
+                replacementEnd = parsed.commandNameRange.last + 1,
+            )
+        }
+
+        val command = registry.find(parsed.commandName)
+            ?: return emptyList()
+        if (command.isDebugOnly && !registry.isDebug) {
+            return emptyList()
+        }
+
+        return command.completeArgument(parsed.toCompletionContext())
+            .filter { completion ->
+                completion.value.startsWith(parsed.currentPrefix.orEmpty(), ignoreCase = true)
+            }
+            .map { completion ->
+                CommandCompletionCandidate(
+                    displayText = completion.value,
+                    description = completion.description,
+                    replacementStart = parsed.currentArgumentRange?.first ?: input.length,
+                    replacementEnd = (parsed.currentArgumentRange?.last ?: input.length - 1) + 1,
+                    appendSpace = completion.appendSpace,
+                )
+            }
+    }
+
     private fun dispatch(input: String, context: CommandContext): String {
         val command = input.trim()
 
@@ -16,7 +59,8 @@ class NilSetCommandCenter(private val registry: CommandRegistry) {
             return "不是内部指令，请输入以 / 开头的指令（如 /help）"
         }
 
-        val commandName = command.removePrefix(CommandExpressions.PREFIX)
+        val commandBody = command.removePrefix(CommandExpressions.PREFIX)
+        val commandName = commandBody.takeWhile { !it.isWhitespace() }
 
         if (commandName == CommandExpressions.HELP) {
             return buildHelp()
@@ -47,5 +91,39 @@ class NilSetCommandCenter(private val registry: CommandRegistry) {
             appendLine("  /${cmd.name}   ${cmd.description}")
         }
     }.trimEnd()
+
+    private fun commandNameCandidates(
+        prefix: String,
+        replacementStart: Int,
+        replacementEnd: Int,
+    ): List<CommandCompletionCandidate> {
+        val candidates = buildList {
+            add(
+                CommandCompletion(
+                    value = CommandExpressions.HELP,
+                    description = "查看可用指令",
+                ),
+            )
+            addAll(registry.visibleCommands().map { command ->
+                CommandCompletion(
+                    value = command.name,
+                    description = command.description,
+                )
+            })
+        }
+
+        return candidates
+            .filter { it.value.startsWith(prefix, ignoreCase = true) }
+            .sortedBy { it.value.lowercase() }
+            .map { completion ->
+                CommandCompletionCandidate(
+                    displayText = "${CommandExpressions.PREFIX}${completion.value}",
+                    description = completion.description,
+                    replacementStart = replacementStart,
+                    replacementEnd = replacementEnd,
+                    appendSpace = completion.appendSpace,
+                )
+            }
+    }
 
 }

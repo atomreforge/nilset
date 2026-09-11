@@ -30,6 +30,8 @@ class ThemeModelsTest {
             }
         }
         assertEquals(true, UserThemeSettings().showCardBorders)
+        assertEquals(true, UserThemeSettings().showConsoleBackground)
+        assertEquals(12f, UserThemeSettings().consoleOutputFontSize)
         assertEquals(0.23f, UserThemeSettings().cardMaskOpacity)
     }
 
@@ -109,10 +111,25 @@ class ThemeModelsTest {
     }
 
     @Test
+    fun `console output font size is clamped`() {
+        val settings = UserThemeSettings(consoleOutputFontSize = 30f)
+
+        assertEquals(24f, settings.effectiveConsoleOutputFontSize)
+        assertEquals(
+            10f,
+            settings.copy(consoleOutputFontSize = 5f).effectiveConsoleOutputFontSize,
+        )
+    }
+
+    @Test
     fun `theme settings serialize and deserialize`() {
         val settings = UserThemeSettings(
             mode = ThemeMode.DARK,
             paletteId = ThemePreset.JADE.id,
+            customFontPath = "file:///data/user/0/net.atomreforge.nilset/files/font/custom.ttf",
+            customFontName = "Custom Font.ttf",
+            showConsoleBackground = false,
+            consoleOutputFontSize = 18f,
             showCardBorders = false,
             cardMaskOpacity = 0.65f,
             customLightColors = ThemeColors("#123456", "#654321", "#EEEEEE", "#FFFFFF"),

@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Typeface
 import android.net.Uri
+import android.provider.OpenableColumns
 import java.io.File
 import kotlin.math.roundToInt
 import androidx.datastore.core.DataStore
@@ -48,6 +50,7 @@ class ThemeRepository @Inject constructor(
     private val dataStore = context.themeDataStore
     private val appContext = context.applicationContext
     private val backgroundDirectory = File(appContext.filesDir, "background")
+    private val fontDirectory = File(appContext.filesDir, "font")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val defaultSettings = UserThemeSettings(
         mode = ThemeMode.DARK,
@@ -193,6 +196,40 @@ class ThemeRepository @Inject constructor(
         }
     }
 
+    suspend fun applyCustomFont(sourceUri: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val uri = Uri.parse(sourceUri)
+            val fontName = resolveFontDisplayName(uri)
+            val extension = resolveFontExtension(uri) ?: return@runCatching false
+            fontDirectory.mkdirs()
+            val temporaryFile = File.createTempFile("custom-font-", ".$extension", fontDirectory)
+            appContext.contentResolver.openInputStream(uri)?.use { input ->
+                temporaryFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: run {
+                temporaryFile.delete()
+                return@runCatching false
+            }
+
+            if (!isValidFontFile(temporaryFile)) {
+                temporaryFile.delete()
+                return@runCatching false
+            }
+
+            deleteCurrentFontFile()
+            val fontFile = File(fontDirectory, "custom-font-${System.currentTimeMillis()}.$extension")
+            require(temporaryFile.renameTo(fontFile))
+            update { current ->
+                current.copy(
+                    customFontPath = Uri.fromFile(fontFile).toString(),
+                    customFontName = fontName,
+                )
+            }
+            true
+        }.getOrDefault(false)
+    }
+
     private fun decodeBitmap(sourceUri: String): Bitmap? {
         val uri = Uri.parse(sourceUri)
         val bounds = BitmapFactory.Options().apply {
@@ -256,6 +293,56 @@ class ThemeRepository @Inject constructor(
             )
         }
     }
+
+    private fun resolveFontExtension(uri: Uri): String? {
+        val mimeType = appContext.contentResolver.getType(uri)?.lowercase()
+        val extension = when (mimeType) {
+            "application/x-font-ttf", "font/ttf", "application/font-sfnt" -> "ttf"
+            "application/x-font-otf", "font/otf", "application/vnd.ms-opentype" -> "otf"
+            else -> null
+        }
+        if (extension != null) return extension
+
+        val displayName = resolveFontDisplayName(uri)
+        if (displayName != null) {
+            val resolved = displayName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+            if (resolved == "ttf" || resolved == "otf") return resolved
+        }
+        return null
+    }
+
+    private fun resolveFontDisplayName(uri: Uri): String? {
+        appContext.contentResolver.query(
+            uri,
+            arrayOf(OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val name = cursor.getString(0)
+                return name?.trim()?.takeIf { it.isNotEmpty() }
+            }
+        }
+        return null
+    }
+
+    private fun isValidFontFile(file: File): Boolean = runCatching {
+        Typeface.createFromFile(file)
+        true
+    }.getOrDefault(false)
+
+    private fun deleteCurrentFontFile() {
+        val currentPath = settings.value.customFontPath ?: return
+        val parsedPath = Uri.parse(currentPath)
+        if (parsedPath.scheme != "file") return
+        val currentFile = File(parsedPath.path ?: return)
+        val directoryPath = fontDirectory.canonicalPath
+        if (runCatching { currentFile.canonicalPath }.getOrNull()?.startsWith(directoryPath) == true) {
+            currentFile.delete()
+        }
+    }
+
     suspend fun resetCustomColors(useDark: Boolean) {
         update { current ->
             current.copy(
@@ -274,12 +361,39 @@ class ThemeRepository @Inject constructor(
         }
     }
 
+    suspend fun resetCustomFont() {
+        deleteCurrentFontFile()
+        update { current ->
+            current.copy(
+                customFontPath = null,
+                customFontName = null,
+            )
+        }
+    }
+
     suspend fun setBackgroundOpacity(opacity: Float) {
         update { current ->
             current.copy(
                 backgroundOpacity = opacity.coerceIn(
                     UserThemeSettings.MIN_BACKGROUND_OPACITY,
                     UserThemeSettings.MAX_BACKGROUND_OPACITY,
+                ),
+            )
+        }
+    }
+
+    suspend fun setConsoleBackground(enabled: Boolean) {
+        update { current ->
+            current.copy(showConsoleBackground = enabled)
+        }
+    }
+
+    suspend fun setConsoleOutputFontSize(fontSize: Float) {
+        update { current ->
+            current.copy(
+                consoleOutputFontSize = fontSize.coerceIn(
+                    UserThemeSettings.MIN_CONSOLE_OUTPUT_FONT_SIZE,
+                    UserThemeSettings.MAX_CONSOLE_OUTPUT_FONT_SIZE,
                 ),
             )
         }

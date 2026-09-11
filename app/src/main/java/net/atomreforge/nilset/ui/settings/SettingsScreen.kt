@@ -46,7 +46,9 @@ import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 @Composable
 fun SettingsScreen(
     onOpenConsole: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
     onOpenThemeSettings: () -> Unit,
+    onOpenCustomSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
@@ -163,6 +165,31 @@ fun SettingsScreen(
                 )
             }
             Surface(
+                onClick = onOpenNotificationSettings,
+                shape = RoundedCornerShape(8.dp),
+                border = if (themeSettings.showCardBorders) {
+                    BorderStroke(1.dp, themeContainerBorderColor())
+                } else {
+                    null
+                },
+                color = themeContainerColor(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.settings_notification))
+                    },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_notification),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
+            Surface(
                 onClick = onOpenThemeSettings,
                 shape = RoundedCornerShape(8.dp),
                 border = if (themeSettings.showCardBorders) {
@@ -189,6 +216,31 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(
                             painter = painterResource(R.drawable.ic_theme),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
+            Surface(
+                onClick = onOpenCustomSettings,
+                shape = RoundedCornerShape(8.dp),
+                border = if (themeSettings.showCardBorders) {
+                    BorderStroke(1.dp, themeContainerBorderColor())
+                } else {
+                    null
+                },
+                color = themeContainerColor(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.settings_custom))
+                    },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_customize),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

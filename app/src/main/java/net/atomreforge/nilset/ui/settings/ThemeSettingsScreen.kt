@@ -9,9 +9,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -83,7 +87,6 @@ fun ThemeSettingsScreen(
 ) {
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val useDarkTheme = settings.usesDarkTheme()
-    var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
     var isInputEnabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -103,10 +106,7 @@ fun ThemeSettingsScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (!isNavigatingBack) {
-                                isNavigatingBack = true
-                                onNavigateBack()
-                            }
+                            onNavigateBack()
                         },
                         modifier = Modifier
                             .size(48.dp)
@@ -225,9 +225,17 @@ fun ThemeSettingsScreen(
                     viewModel.setUiScale(UserThemeSettings.DEFAULT_SCALE)
                 },
             )
+            ThemeCustomFontCard(
+                settings = settings,
+                showBorder = settings.showCardBorders,
+                cardMaskOpacity = settings.cardMaskOpacity,
+                onFontSelected = viewModel::applyCustomFont,
+                onRemoveFont = viewModel::removeCustomFont,
+            )
             ThemeCustomBackgroundCard(
                 settings = settings,
                 showBorder = settings.showCardBorders,
+                cardMaskOpacity = settings.cardMaskOpacity,
                 onImageSelected = onSelectBackgroundImage,
                 onOpacityChange = viewModel::setBackgroundOpacity,
                 onRemoveImage = viewModel::removeCustomBackgroundImage,
@@ -505,9 +513,109 @@ private fun Float.snapToPercentage(): Float {
 }
 
 @Composable
+private fun ThemeCustomFontCard(
+    settings: UserThemeSettings,
+    showBorder: Boolean,
+    cardMaskOpacity: Float,
+    onFontSelected: (String) -> Unit,
+    onRemoveFont: () -> Unit,
+) {
+    val fontPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        uri?.toString()?.let(onFontSelected)
+    }
+    val currentFontName = settings.customFontName
+        ?: settings.customFontPath
+            ?.substringAfterLast('/')
+            ?.substringBefore('?')
+        ?: stringResource(R.string.theme_default_font)
+    val hasCustomFont = settings.customFontPath != null
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Surface(
+            onClick = {
+                fontPicker.launch(
+                    arrayOf(
+                        "*/*",
+                    ),
+                )
+            },
+            modifier = if (hasCustomFont) {
+                Modifier.weight(1f)
+            } else {
+                Modifier.fillMaxWidth()
+            },
+            shape = RoundedCornerShape(8.dp),
+            color = themeContainerColor(),
+            border = if (showBorder) {
+                BorderStroke(1.dp, themeContainerBorderColor())
+            } else {
+                null
+            },
+        ) {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.theme_custom_font)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_font),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                trailingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_open),
+                        contentDescription = stringResource(R.string.theme_open_font_picker),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            )
+        }
+
+        if (hasCustomFont) {
+            Surface(
+                onClick = onRemoveFont,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f),
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.error.copy(alpha = cardMaskOpacity),
+                contentColor = MaterialTheme.colorScheme.onError,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_cross),
+                        contentDescription = stringResource(R.string.theme_reset_default_font),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    Text(
+        text = stringResource(R.string.theme_current_font, currentFontName),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp),
+    )
+}
+
+@Composable
 private fun ThemeCustomBackgroundCard(
     settings: UserThemeSettings,
     showBorder: Boolean,
+    cardMaskOpacity: Float,
     onImageSelected: (String) -> Unit,
     onOpacityChange: (Float) -> Unit,
     onRemoveImage: () -> Unit,
@@ -522,41 +630,76 @@ private fun ThemeCustomBackgroundCard(
     var opacity by remember(settings.backgroundOpacity) {
         mutableStateOf(settings.backgroundOpacity)
     }
+    val hasCustomBackgroundImage = settings.backgroundImageUri != null
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(
-            onClick = {
-                imagePicker.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            color = themeContainerColor(),
-            border = if (showBorder) {
-                BorderStroke(1.dp, themeContainerBorderColor())
-            } else {
-                null
-            },
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.theme_custom_background)) },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_image),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Surface(
+                onClick = {
+                    imagePicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
-                trailingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_open),
-                        contentDescription = stringResource(R.string.theme_open_background_picker),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                modifier = if (hasCustomBackgroundImage) {
+                    Modifier.weight(1f)
+                } else {
+                    Modifier.fillMaxWidth()
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
+                shape = RoundedCornerShape(8.dp),
+                color = themeContainerColor(),
+                border = if (showBorder) {
+                    BorderStroke(1.dp, themeContainerBorderColor())
+                } else {
+                    null
+                },
+            ) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.theme_custom_background)) },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_image),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    trailingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_open),
+                            contentDescription = stringResource(R.string.theme_open_background_picker),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
+
+            if (hasCustomBackgroundImage) {
+                Surface(
+                    onClick = onRemoveImage,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.error.copy(alpha = cardMaskOpacity),
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_cross),
+                            contentDescription = stringResource(R.string.theme_remove_background_image),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+            }
         }
 
         Slider(
@@ -578,15 +721,6 @@ private fun ThemeCustomBackgroundCard(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.End),
         )
-
-        if (settings.backgroundImageUri != null) {
-            OutlinedButton(
-                onClick = onRemoveImage,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.theme_remove_background_image))
-            }
-        }
     }
 }
 

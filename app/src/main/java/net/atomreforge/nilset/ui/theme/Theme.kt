@@ -79,6 +79,12 @@ fun ATOMTheme(
         density = currentDensity.density * settings.effectiveUiScale,
         fontScale = currentDensity.fontScale * settings.effectiveTextScale,
     )
+    val customFontFamily = remember(settings.customFontPath) {
+        loadCustomFontFamily(settings.customFontPath)
+    }
+    val typography = remember(customFontFamily) {
+        buildTypography(customFontFamily)
+    }
 
     CompositionLocalProvider(
         LocalDensity provides scaledDensity,
@@ -86,7 +92,7 @@ fun ATOMTheme(
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = AppThemeConfig.Default.typography,
+            typography = typography,
             content = content,
         )
     }

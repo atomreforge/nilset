@@ -16,5 +16,7 @@ interface NilSetCommand {
     val isDebugOnly: Boolean
         get() = false
 
+    fun completeArgument(context: CommandCompletionContext): List<CommandCompletion> = emptyList()
+
     fun execute(context: CommandContext): CommandResult
 }

@@ -5,8 +5,11 @@ import android.net.Uri
 object AppRoutes {
     const val LOGIN = "login"
     const val CONSOLE = "console"
+    const val CONSOLE_SETTINGS = "console/settings"
     const val MAIN = "main"
     const val THEME_SETTINGS = "theme_settings"
+    const val NOTIFICATION_SETTINGS = "notification_settings"
+    const val CUSTOM_SETTINGS = "custom_settings"
     const val BACKGROUND_CROP = "background_crop/{sourceUri}"
 
     fun backgroundCrop(sourceUri: String): String {

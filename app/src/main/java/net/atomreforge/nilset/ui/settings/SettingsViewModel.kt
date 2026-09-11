@@ -89,6 +89,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { themeRepository.setBackgroundOpacity(opacity) }
     }
 
+    fun setConsoleBackground(enabled: Boolean) {
+        viewModelScope.launch { themeRepository.setConsoleBackground(enabled) }
+    }
+
+    fun setConsoleOutputFontSize(fontSize: Float) {
+        viewModelScope.launch { themeRepository.setConsoleOutputFontSize(fontSize) }
+    }
+
     suspend fun applyCroppedBackgroundImage(
         sourceUri: String,
         cropLeft: Float,
@@ -109,5 +117,13 @@ class SettingsViewModel @Inject constructor(
 
     fun removeCustomBackgroundImage() {
         viewModelScope.launch { themeRepository.resetCustomBackgroundImage() }
+    }
+
+    fun applyCustomFont(sourceUri: String) {
+        viewModelScope.launch { themeRepository.applyCustomFont(sourceUri) }
+    }
+
+    fun removeCustomFont() {
+        viewModelScope.launch { themeRepository.resetCustomFont() }
     }
 }

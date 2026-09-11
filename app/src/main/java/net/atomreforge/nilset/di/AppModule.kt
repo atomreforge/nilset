@@ -10,6 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.atomreforge.nilset.di.ConfigDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +20,7 @@ import net.atomreforge.nilset.core.command.CommandRegistry
 import net.atomreforge.nilset.core.command.NilSetCommandCenter
 import net.atomreforge.nilset.core.command.commands.ClearConsoleCommand
 import net.atomreforge.nilset.core.command.commands.ClearDataCommand
+import net.atomreforge.nilset.core.command.commands.ConfigCommand
 import net.atomreforge.nilset.core.command.commands.NoLoginCommand
 import net.atomreforge.nilset.core.command.commands.StatusCommand
 import net.atomreforge.nilset.core.logging.AppLogger
@@ -26,10 +28,15 @@ import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
+import net.atomreforge.nilset.const.ConfigStoreKeys
 import net.atomreforge.nilset.data.repository.CalendarRepository
 import net.atomreforge.nilset.data.repository.CalendarSyncManager
+import net.atomreforge.nilset.data.repository.ConfigRepository
 import net.atomreforge.nilset.data.repository.LocalCalendarSource
 import net.atomreforge.nilset.data.repository.LocalFirstCalendarSyncManager
+import net.atomreforge.nilset.data.repository.LocalMarkdownRepository
+import net.atomreforge.nilset.data.repository.MarkdownRepository
+import net.atomreforge.nilset.data.repository.PreferencesConfigRepository
 import net.atomreforge.nilset.data.repository.PreferencesLocalCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarSource
@@ -37,6 +44,7 @@ import net.atomreforge.nilset.data.repository.PreferencesScheduleViewRepository
 import net.atomreforge.nilset.data.repository.ScheduleViewRepository
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
+import net.atomreforge.nilset.data.remote.interceptor.DynamicBaseUrlInterceptor
 import net.atomreforge.nilset.data.remote.interceptor.TokenAuthenticator
 import net.atomreforge.nilset.data.repository.RemoteSessionRepository
 import net.atomreforge.nilset.data.repository.SessionScope
@@ -55,6 +63,10 @@ import javax.inject.Singleton
 
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "nilset_session",
+)
+
+private val Context.configDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = ConfigStoreKeys.STORE_NAME,
 )
 
 private class HttpLogBridge(private val appLogger: AppLogger) : HttpLoggingInterceptor.Logger {
@@ -98,6 +110,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    @ConfigDataStore
+    fun provideConfigDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.configDataStore
+
+    @Provides
+    @Singleton
     fun provideAppConfig(@ApplicationContext context: Context): AppConfig =
         ConfigLoader.mustLoad(context)
 
@@ -116,6 +134,7 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(
         config: AppConfig,
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
         appLogger: AppLogger,
@@ -135,6 +154,7 @@ object AppModule {
                 authenticator(tokenAuthenticator)
             }
         }
+        .addInterceptor(dynamicBaseUrlInterceptor)
         .addInterceptor(authInterceptor)
         .build()
 
@@ -160,6 +180,7 @@ object AppModule {
     fun provideCommandRegistry(): CommandRegistry = CommandRegistry(
         commands = listOf(
             NoLoginCommand(),
+            ConfigCommand(),
             ClearDataCommand(),
             ClearConsoleCommand(),
             StatusCommand(),
@@ -218,4 +239,16 @@ abstract class RepositoryModule {
     abstract fun bindCalendarSyncManager(
         impl: LocalFirstCalendarSyncManager,
     ): CalendarSyncManager
+
+    @Binds
+    @Singleton
+    abstract fun bindMarkdownRepository(
+        impl: LocalMarkdownRepository,
+    ): MarkdownRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindConfigRepository(
+        impl: PreferencesConfigRepository,
+    ): ConfigRepository
 }

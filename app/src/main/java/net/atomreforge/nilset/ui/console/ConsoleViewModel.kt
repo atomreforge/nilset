@@ -13,6 +13,7 @@ import net.atomreforge.nilset.core.command.CommandContext
 import net.atomreforge.nilset.core.command.NilSetCommandCenter
 import net.atomreforge.nilset.data.repository.ConsoleHistoryRepository
 import net.atomreforge.nilset.data.repository.SessionRepository
+import net.atomreforge.nilset.data.repository.ConfigRepository
 import javax.inject.Inject
 
 /**
@@ -24,28 +25,12 @@ import javax.inject.Inject
 class ConsoleViewModel @Inject constructor(
     private val consoleHistoryRepository: ConsoleHistoryRepository,
     private val sessionRepository: SessionRepository,
+    private val configRepository: ConfigRepository,
     private val commandCenter: NilSetCommandCenter,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConsoleUiState(consoleHistoryRepository.entries.value))
     val uiState: StateFlow<ConsoleUiState> = _uiState.asStateFlow()
-
-    val availableCommands: List<ConsoleCommandSuggestion> = buildList {
-        add(
-            ConsoleCommandSuggestion(
-                name = "help",
-                description = "查看可用指令",
-            )
-        )
-        addAll(
-            commandCenter.visibleCommands().map { command ->
-                ConsoleCommandSuggestion(
-                    name = command.name,
-                    description = command.description,
-                )
-            }
-        )
-    }.sortedBy { it.name.lowercase() }
 
     init {
         if (consoleHistoryRepository.entries.value.isEmpty()) {
@@ -64,20 +49,28 @@ class ConsoleViewModel @Inject constructor(
         val trimmed = command.trim()
         if (trimmed.isEmpty()) return
 
-        val context = CommandContext(consoleHistoryRepository, sessionRepository)
+        val context = CommandContext(
+            consoleHistoryRepository = consoleHistoryRepository,
+            sessionRepository = sessionRepository,
+            commandInput = trimmed,
+            configRepository = configRepository,
+        )
         val result = commandCenter.execute(trimmed, context)
         appendOutput("> $trimmed", LogLevel.INFO)
         appendOutput(result, LogLevel.INFO)
     }
 
-    fun commandSuggestionsFor(input: String): List<ConsoleCommandSuggestion> {
-        if (!input.startsWith("/")) return emptyList()
-
-        val query = input
-            .substring(1)
-            .trim()
-            .lowercase()
-        return availableCommands.filter { it.name.lowercase().startsWith(query) }
+    fun commandSuggestionsFor(
+        input: String,
+        cursor: Int,
+    ): List<ConsoleCommandSuggestion> = commandCenter.complete(input, cursor).map { candidate ->
+        ConsoleCommandSuggestion(
+            displayText = candidate.displayText,
+            description = candidate.description,
+            replacementStart = candidate.replacementStart,
+            replacementEnd = candidate.replacementEnd,
+            appendSpace = candidate.appendSpace,
+        )
     }
 
     private fun appendOutput(text: String, level: LogLevel) {
@@ -92,6 +85,9 @@ data class ConsoleUiState(
 )
 
 data class ConsoleCommandSuggestion(
-    val name: String,
+    val displayText: String,
     val description: String,
+    val replacementStart: Int,
+    val replacementEnd: Int,
+    val appendSpace: Boolean,
 )

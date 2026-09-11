@@ -139,12 +139,16 @@ data class UserThemeSettings(
     val customDarkColors: ThemeColors? = null,
     val backgroundImageUri: String? = null,
     val backgroundOpacity: Float = DEFAULT_BACKGROUND_OPACITY,
+    val customFontPath: String? = null,
+    val customFontName: String? = null,
+    val showConsoleBackground: Boolean = true,
     val showCardBorders: Boolean = true,
     val cardMaskOpacity: Float = DEFAULT_CARD_MASK_OPACITY,
     val textScaleEnabled: Boolean = false,
     val textScale: Float = 1f,
     val uiScaleEnabled: Boolean = false,
     val uiScale: Float = 1f,
+    val consoleOutputFontSize: Float = DEFAULT_CONSOLE_OUTPUT_FONT_SIZE,
 ) {
     val palette: ThemePreset
         get() = ThemePreset.fromId(paletteId)
@@ -157,6 +161,12 @@ data class UserThemeSettings(
 
     val effectiveUiScale: Float
         get() = if (uiScaleEnabled) uiScale.coerceIn(MIN_SCALE, MAX_SCALE) else 1f
+
+    val effectiveConsoleOutputFontSize: Float
+        get() = consoleOutputFontSize.coerceIn(
+            MIN_CONSOLE_OUTPUT_FONT_SIZE,
+            MAX_CONSOLE_OUTPUT_FONT_SIZE,
+        )
 
     val effectiveCardMaskOpacity: Float
         get() = cardMaskOpacity.coerceIn(MIN_CARD_MASK_OPACITY, MAX_CARD_MASK_OPACITY)
@@ -189,6 +199,9 @@ data class UserThemeSettings(
         const val MIN_BACKGROUND_OPACITY = 0f
         const val MAX_BACKGROUND_OPACITY = 1f
         const val DEFAULT_BACKGROUND_OPACITY = 1f
+        const val MIN_CONSOLE_OUTPUT_FONT_SIZE = 10f
+        const val MAX_CONSOLE_OUTPUT_FONT_SIZE = 24f
+        const val DEFAULT_CONSOLE_OUTPUT_FONT_SIZE = 12f
         const val MIN_CARD_MASK_OPACITY = 0f
         const val MAX_CARD_MASK_OPACITY = 1f
         const val DEFAULT_CARD_MASK_OPACITY = 0.23f

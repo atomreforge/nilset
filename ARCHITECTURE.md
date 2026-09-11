@@ -11,6 +11,8 @@
 - 数据层使用 Repository 接口、Retrofit/OkHttp 和 DataStore。
 - 指令系统使用命令模式与注册表，控制台指令统一使用 `/` 前缀。
 - 主题由 `ThemeRepository` 提供 `StateFlow<UserThemeSettings>`，启动时从 DataStore 恢复；默认使用枫糖，另含落樱、青碧、汀蓝、动态取色和自定义主题。卡片与导航容器使用当前背景色派生的半透明遮罩，遮罩透明度由主题设置持久化；主题配色主要影响图标与文字。裁剪后的全局背景图按应用比例生成，透明度默认 100%；主页侧边栏使用当前背景色半透明遮罩，覆盖共享全局背景与下层主页内容。
+- 自定义字体从系统文件选择器进入后复制到 `files/font`，先按 Android `Typeface` 校验再持久化路径和原始文件名；`ATOMTheme` 会基于该文件重建 Typography，恢复默认时删除文件并清空设置。
+- 控制台背景开关保存在主题设置中；全局背景层在 `console` 和 `console/settings` 路由按该开关隐藏，其他页面仍使用全局背景。背景图切换使用淡入淡出过渡。
 - 独立 `theme_settings` 页面将主题模式与主题配色分离；模式提供浅色和深色，动态取色是随当前模式区分浅色/深色的主题。
 - 配色模型保留 `primary`、`secondary`、`background` 和 `surface` 四个来源色；设置页自定义只编辑 primary、secondary 和 surface，background 由预设与模式内部维护。`ATOMTheme` 依据所选模式派生 Material 3 `ColorScheme`，字体仍由 `AppThemeConfig` 提供。
 - `ATOMTheme` 通过 `LocalDensity` 应用可选的文本缩放与 UI 缩放，两者均支持 80%-120% 并由主题仓库持久化。
@@ -43,9 +45,9 @@ Data 层
 - 登录页和控制台页分别是 `LoginScreen`、`ConsoleScreen`。
 - 页面通过 `hiltViewModel()` 获取 ViewModel。
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
-- 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令候选，候选按字母序过滤。
+- 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令名和参数段候选；指令名按字母序过滤。
 - 登录反馈使用 Material 3 `SnackbarHost`；登录成功后清除登录页返回栈并进入主页。
-- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏，主页项固定在列表置顶；日历月历与个人课表读取已接入，其余功能入口暂作占位栏展示。
+- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏；日历月历与课表共建已接入，随心记和待办事项暂作占位栏展示。
 - 主页与设置页共用 Material 3 `NavigationBar`；设置是独立顶层路由，不作为侧边栏项。
 - 主页和设置页在主路由内并排布局，通过 `graphicsLayer` 平移共享同一版面；切换动画可被新的导航目标立即接管。
 
@@ -108,11 +110,15 @@ Data 层
 
 ### 指令
 
-- 当前指令包括 `/status`、`/no:login`、`/clear:data`、`/cls` 和内置 `/help`。
+- 当前指令包括 `/status`、`/config`、`/no:login`、`/clear:data`、`/cls` 和内置 `/help`。
+- `/config set host_addr` 将服务器地址持久化到 `nilset_config` DataStore，默认值为 `syewiki.top:4703`；`DynamicBaseUrlInterceptor` 在每次请求前把 Retrofit 请求重写到该地址，`clear` 移除覆盖键。
 - `/no:login`、`/clear:data` 只在 debug 构建可见且可执行。
 - `/cls` 清空控制台历史；`/clear:data` 清除本地会话数据，两者职责不同。
 - 控制台历史保存在 `ConsoleHistoryRepository` 进程内单例中，导航返回后仍可显示。
-- 输入 `/` 后展示当前构建可见的候选指令，继续输入会按指令名前缀过滤。
+- 输入 `/` 后展示当前构建可见的全部候选指令并按名称排序；继续输入会按指令名前缀过滤。参数段补全由各指令通过 `completeArgument` 声明，选择候选只替换光标所在 token。
+- `console/settings` 是控制台的附属路由；当前承载控制台背景开关，不承载独立主导航入口。
+- 控制台输出字号保存在主题设置中；该设置只应用于控制台输出文本，不影响输入框、TopBar或其他页面文字。
+- 所有路由级返回和完成后的弹栈统一检查当前目标 route；快速重复点击时，只有仍在发起页时才执行一次返回，避免弹出发起页导致空白。
 
 ### 本地测试账号
 
@@ -135,7 +141,7 @@ app/src/main/java/net/atomreforge/nilset/
 │  │  ├─ api/               # Retrofit 接口
 │  │  ├─ dto/               # 网络传输模型
 │  │  └─ interceptor/       # AuthInterceptor 与 TokenAuthenticator
-│  ├─ repository/           # 会话、主题、控制台历史与课表仓库
+│  ├─ repository/           # 会话、主题、控制台历史、课表、配置与 Markdown 仓库
 │  └─ session/              # SessionState 与 DataStore 数据源
 ├─ di/                       # Hilt Module
 └─ ui/
@@ -158,7 +164,7 @@ app/src/main/java/net/atomreforge/nilset/
 | 导航 | Navigation Compose | 单 Activity + `NavHost` |
 | 异步 | Coroutines + Flow | ViewModel、Repository 和网络层统一使用 |
 | DI | Hilt 2.59 + KSP 2.3.11 | 适配 AGP 9 内建 Kotlin |
-| 持久化 | DataStore Preferences | 保存会话、主题、当前用户本地课表和课表查看偏好，Room 尚未引入 |
+| 持久化 | DataStore Preferences | 保存会话、主题、控制台配置、当前用户本地课表和课表查看偏好，Room 尚未引入 |
 | 网络 | Retrofit + OkHttp + kotlinx.serialization | 连接 Daizy Night 服务端 |
 | 配置 | KAML + 强类型 data class | YAML fail-fast 加载 |
 | 构建 | Gradle Version Catalog + AGP 9 | 单模块工程 |
@@ -171,7 +177,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 课表共建页当前用户课表为本地创建和本地持久化；远端个人课表读取链路保留，但成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
 - 离线课表修改不会进入同步队列；连接恢复或在线修改时按核心字段对比并以本地覆盖远端，同步失败则等待下一次触发。
 - 侧边栏日历当前只是独立月历浏览视图，不加载课表或日程数据，也不提供日期详情。
-- 测试覆盖仍不完整：会话刷新、服务连接、课表仓库/视图模型和主题模型已有测试，核心指令和 Compose UI 测试不足。
+- 测试覆盖仍不完整：会话刷新、服务连接、课表仓库/视图模型、主题模型和指令配置补全已有测试，Compose UI 测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。
 

@@ -26,17 +26,22 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import net.atomreforge.nilset.ui.theme.themeContainerColor
@@ -45,21 +50,52 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import net.atomreforge.nilset.core.logging.ConsoleEntry
 import net.atomreforge.nilset.core.logging.LogLevel
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsoleScreen(
     viewModel: ConsoleViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val themeSettings by settingsViewModel.themeSettings.collectAsStateWithLifecycle()
     var commandInput by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(""))
     }
+    val consoleScrollState = rememberScrollState()
+    var consoleInputFocused by remember { mutableStateOf(false) }
+    var consoleAtBottom by remember { mutableStateOf(true) }
     var commandSuggestionsExpanded by rememberSaveable { mutableStateOf(false) }
-    val commandSuggestions = viewModel.commandSuggestionsFor(commandInput.text)
-    var isNavigatingBack by rememberSaveable { mutableStateOf(false) }
+    val commandSuggestions = viewModel.commandSuggestionsFor(
+        input = commandInput.text,
+        cursor = commandInput.selection.min,
+    )
+    val latestConsoleEntryTime = uiState.entries.lastOrNull()?.timestampMillis ?: 0L
 
+    LaunchedEffect(consoleScrollState) {
+        snapshotFlow { consoleScrollState.value }
+            .collect { value ->
+                consoleAtBottom = isConsoleScrolledToBottom(
+                    scrollValue = value,
+                    maxValue = consoleScrollState.maxValue,
+                )
+            }
+    }
+
+    LaunchedEffect(uiState.entries.size, latestConsoleEntryTime) {
+        if (consoleAtBottom) {
+            consoleScrollState.animateScrollTo(consoleScrollState.maxValue)
+        }
+    }
+
+    LaunchedEffect(consoleInputFocused, consoleScrollState.maxValue) {
+        if (consoleInputFocused && consoleAtBottom) {
+            consoleScrollState.animateScrollTo(consoleScrollState.maxValue)
+        }
+    }
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -71,15 +107,21 @@ fun ConsoleScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (!isNavigatingBack) {
-                                isNavigatingBack = true
-                                onNavigateBack()
-                            }
+                            onNavigateBack()
                         },
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_back),
                             contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_settings),
+                            contentDescription = stringResource(R.string.console_settings),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
@@ -99,12 +141,13 @@ fun ConsoleScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(consoleScrollState),
             ) {
                 uiState.entries.forEach { entry ->
                     Text(
                         text = entry.displayText(),
                         style = MaterialTheme.typography.bodySmall,
+                        fontSize = themeSettings.effectiveConsoleOutputFontSize.sp,
                         color = entry.logColor(),
                         modifier = Modifier.padding(vertical = 4.dp),
                     )
@@ -129,6 +172,9 @@ fun ConsoleScreen(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            consoleInputFocused = focusState.isFocused
+                        }
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
                     shape = MaterialTheme.shapes.medium,
                 )
@@ -141,7 +187,7 @@ fun ConsoleScreen(
                             text = {
                                 Column {
                                     Text(
-                                        text = "/${suggestion.name}",
+                                        text = suggestion.displayText,
                                         style = MaterialTheme.typography.bodyLarge,
                                     )
                                     Text(
@@ -152,12 +198,22 @@ fun ConsoleScreen(
                                 }
                             },
                             onClick = {
-                                val command = "/${suggestion.name}"
-                                commandInput = TextFieldValue(
-                                    text = command,
-                                    selection = TextRange(command.length),
+                                val sourceText = commandInput.text
+                                val replacementEnd = suggestion.replacementEnd
+                                    .coerceIn(suggestion.replacementStart, sourceText.length)
+                                val replacement = suggestion.displayText +
+                                    if (suggestion.appendSpace) " " else ""
+                                val nextText = sourceText.replaceRange(
+                                    startIndex = suggestion.replacementStart,
+                                    endIndex = replacementEnd,
+                                    replacement = replacement,
                                 )
-                                commandSuggestionsExpanded = false
+                                val nextCursor = suggestion.replacementStart + replacement.length
+                                commandInput = TextFieldValue(
+                                    text = nextText,
+                                    selection = TextRange(nextCursor),
+                                )
+                                commandSuggestionsExpanded = nextText.startsWith("/")
                             },
                         )
                     }

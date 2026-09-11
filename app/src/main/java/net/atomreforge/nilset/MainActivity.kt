@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -20,6 +24,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -35,12 +40,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import dagger.hilt.android.AndroidEntryPoint
 import net.atomreforge.nilset.const.AppRoutes
 import net.atomreforge.nilset.ui.console.ConsoleScreen
+import net.atomreforge.nilset.ui.console.ConsoleSettingsScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
+import net.atomreforge.nilset.ui.main.popBackStackIfCurrent
 import net.atomreforge.nilset.ui.settings.ThemeSettingsScreen
+import net.atomreforge.nilset.ui.settings.CustomSettingsScreen
+import net.atomreforge.nilset.ui.settings.NotificationSettingsScreen
 import net.atomreforge.nilset.ui.settings.BackgroundCropScreen
 import net.atomreforge.nilset.ui.session.SessionViewModel
 import net.atomreforge.nilset.ui.session.ThemeViewModel
@@ -84,16 +94,30 @@ class MainActivity : ComponentActivity() {
                     val startDestination = remember {
                         if (sessionState.isLoggedIn) AppRoutes.MAIN else AppRoutes.LOGIN
                     }
+                    val currentRoute by navController.currentBackStackEntryAsState()
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        if (backgroundImage != null) {
-                            Image(
-                                bitmap = backgroundImage,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                alpha = themeSettings.backgroundOpacity,
-                                modifier = Modifier.matchParentSize(),
-                            )
+                        val currentDestinationRoute = currentRoute?.destination?.route
+                        val isConsoleBackgroundRoute = currentDestinationRoute == AppRoutes.CONSOLE ||
+                            currentDestinationRoute == AppRoutes.CONSOLE_SETTINGS
+                        val showsBackgroundImage = backgroundImage != null &&
+                            !(isConsoleBackgroundRoute && !themeSettings.showConsoleBackground)
+
+                        AnimatedVisibility(
+                            visible = showsBackgroundImage,
+                            enter = fadeIn(animationSpec = tween(durationMillis = 240)),
+                            exit = fadeOut(animationSpec = tween(durationMillis = 240)),
+                            modifier = Modifier.matchParentSize(),
+                        ) {
+                            backgroundImage?.let { image ->
+                                Image(
+                                    bitmap = image,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    alpha = themeSettings.backgroundOpacity,
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                            }
                         }
                         NavHost(
                             navController = navController,
@@ -116,9 +140,25 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(AppRoutes.THEME_SETTINGS) {
                                 ThemeSettingsScreen(
-                                    onNavigateBack = { navController.popBackStack() },
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.THEME_SETTINGS)
+                                    },
                                     onSelectBackgroundImage = { sourceUri ->
                                         navController.navigate(AppRoutes.backgroundCrop(sourceUri))
+                                    },
+                                )
+                            }
+                            composable(AppRoutes.NOTIFICATION_SETTINGS) {
+                                NotificationSettingsScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.NOTIFICATION_SETTINGS)
+                                    },
+                                )
+                            }
+                            composable(AppRoutes.CUSTOM_SETTINGS) {
+                                CustomSettingsScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.CUSTOM_SETTINGS)
                                     },
                                 )
                             }
@@ -132,12 +172,28 @@ class MainActivity : ComponentActivity() {
                             ) { entry ->
                                 BackgroundCropScreen(
                                     sourceUri = entry.arguments?.getString("sourceUri").orEmpty(),
-                                    onApplied = { navController.popBackStack() },
-                                    onDiscard = { navController.popBackStack() },
+                                    onApplied = {
+                                        navController.popBackStackIfCurrent(AppRoutes.BACKGROUND_CROP)
+                                    },
+                                    onDiscard = {
+                                        navController.popBackStackIfCurrent(AppRoutes.BACKGROUND_CROP)
+                                    },
                                 )
                             }
                             composable(AppRoutes.CONSOLE) {
-                                ConsoleScreen(onNavigateBack = { navController.popBackStack() })
+                                ConsoleScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.CONSOLE)
+                                    },
+                                    onOpenSettings = { navController.navigate(AppRoutes.CONSOLE_SETTINGS) },
+                                )
+                            }
+                            composable(AppRoutes.CONSOLE_SETTINGS) {
+                                ConsoleSettingsScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.CONSOLE_SETTINGS)
+                                    },
+                                )
                             }
                             composable(AppRoutes.MAIN) {
                                 MainScreen(
@@ -150,8 +206,14 @@ class MainActivity : ComponentActivity() {
                                             restoreState = true
                                         }
                                     },
+                                    onOpenNotificationSettings = {
+                                        navController.navigate(AppRoutes.NOTIFICATION_SETTINGS)
+                                    },
                                     onOpenThemeSettings = {
                                         navController.navigate(AppRoutes.THEME_SETTINGS)
+                                    },
+                                    onOpenCustomSettings = {
+                                        navController.navigate(AppRoutes.CUSTOM_SETTINGS)
                                     },
                                 )
                             }

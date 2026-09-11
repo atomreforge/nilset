@@ -16,8 +16,8 @@ android {
         applicationId = "net.atomreforge.nilset"
         minSdk = 29
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.1.2a"
+        versionCode = 5
+        versionName = "0.1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
