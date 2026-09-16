@@ -26,15 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.data.session.UserInfo
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
@@ -77,7 +72,7 @@ fun SettingsUserCard(
 ) {
     val unknownLabel = stringResource(R.string.settings_user_unknown)
     val content = userCardContent(userInfo, fallbackUsername, unknownLabel)
-    var actionMenuVisible by remember { mutableStateOf(false) }
+    var logoutArmed by remember { mutableStateOf(false) }
 
     Box {
         Surface(
@@ -92,8 +87,8 @@ fun SettingsUserCard(
                 .fillMaxWidth()
                 .height(UserCardHeight)
                 .combinedClickable(
-                    onClick = { actionMenuVisible = false },
-                    onLongClick = { actionMenuVisible = true },
+                    onClick = { logoutArmed = false },
+                    onLongClick = { logoutArmed = true },
                 ),
         ) {
             Row(
@@ -140,36 +135,41 @@ fun SettingsUserCard(
             }
         }
 
-        if (actionMenuVisible) {
-            val popupOffsetX = with(LocalDensity.current) {
-                -UserActionInset.roundToPx()
-            }
-            Popup(
-                alignment = Alignment.CenterEnd,
-                offset = IntOffset(x = popupOffsetX, y = 0),
-                onDismissRequest = { actionMenuVisible = false },
-                properties = PopupProperties(focusable = true),
-            ) {
-                SettingsLogoutActionButton(
-                    onClick = {
-                        actionMenuVisible = false
-                        onLogout()
-                    },
-                )
-            }
-        }
+        SettingsLogoutActionButton(
+            enabled = logoutArmed,
+            onClick = {
+                logoutArmed = false
+                onLogout()
+            },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = UserActionInset),
+        )
     }
 }
 
 @Composable
-private fun SettingsLogoutActionButton(onClick: () -> Unit) {
+private fun SettingsLogoutActionButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.error,
-        contentColor = MaterialTheme.colorScheme.onError,
+        enabled = enabled,
+        color = if (enabled) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        contentColor = if (enabled) {
+            MaterialTheme.colorScheme.onError
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
         shape = RoundedCornerShape(10.dp),
         shadowElevation = 6.dp,
-        modifier = Modifier.size(UserActionSize),
+        modifier = modifier.size(UserActionSize),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Icon(
