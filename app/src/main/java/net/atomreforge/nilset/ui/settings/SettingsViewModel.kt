@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.atomreforge.nilset.core.theme.ThemeColorFields
 import net.atomreforge.nilset.core.theme.ThemeColorParser
@@ -13,16 +15,31 @@ import net.atomreforge.nilset.core.theme.UserThemeSettings
 import net.atomreforge.nilset.data.repository.ThemeRepository
 import net.atomreforge.nilset.data.remote.ServerConnectionManager
 import net.atomreforge.nilset.data.remote.ServerConnectionUiState
+import net.atomreforge.nilset.data.repository.SessionRepository
+import net.atomreforge.nilset.data.session.SessionState
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val themeRepository: ThemeRepository,
     private val serverConnectionManager: ServerConnectionManager,
+    private val sessionRepository: SessionRepository,
 ) : ViewModel() {
     val themeSettings: StateFlow<UserThemeSettings> = themeRepository.settings
     val serverConnection: StateFlow<ServerConnectionUiState> =
         serverConnectionManager.uiState
+    val sessionState: StateFlow<SessionState> = sessionRepository.sessionState
+
+    private val _isLoggedOut = MutableStateFlow(false)
+    val isLoggedOut: StateFlow<Boolean> = _isLoggedOut.asStateFlow()
+
+    fun logout() {
+        viewModelScope.launch {
+            sessionRepository.logout().onSuccess {
+                _isLoggedOut.value = true
+            }
+        }
+    }
 
     fun retryServerConnection() {
         serverConnectionManager.requestManualRetry()

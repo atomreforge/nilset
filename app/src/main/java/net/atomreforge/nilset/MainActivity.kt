@@ -216,6 +216,13 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(AppRoutes.MAIN) {
                                 MainScreen(
+                                    onLoggedOut = {
+                                        navController.navigate(AppRoutes.LOGIN) {
+                                            popUpTo(AppRoutes.MAIN) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
                                     onOpenConsole = {
                                         navController.navigate(AppRoutes.CONSOLE) {
                                             launchSingleTop = true

@@ -23,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
@@ -45,6 +46,7 @@ import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onLoggedOut: () -> Unit,
     onOpenConsole: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenThemeSettings: () -> Unit,
@@ -53,6 +55,8 @@ fun SettingsScreen(
 ) {
     val themeSettings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val serverConnection by viewModel.serverConnection.collectAsStateWithLifecycle()
+    val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val isLoggedOut by viewModel.isLoggedOut.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
     val modeLabel = stringResource(
@@ -61,6 +65,10 @@ fun SettingsScreen(
             ThemeMode.DARK -> R.string.theme_mode_dark
         },
     )
+
+    LaunchedEffect(isLoggedOut) {
+        if (isLoggedOut) onLoggedOut()
+    }
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -139,6 +147,13 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            SettingsUserCard(
+                userInfo = sessionState.userInfo,
+                fallbackUsername = sessionState.username,
+                showBorder = themeSettings.showCardBorders,
+                onLogout = viewModel::logout,
+            )
+
             Surface(
                 onClick = onOpenConsole,
                 shape = RoundedCornerShape(8.dp),

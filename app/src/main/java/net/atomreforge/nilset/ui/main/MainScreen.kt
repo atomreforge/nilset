@@ -29,6 +29,7 @@ private fun routePage(route: String) = if (route == AppRoutes.Tab.SETTINGS) 1 el
 
 @Composable
 fun MainScreen(
+    onLoggedOut: () -> Unit,
     onOpenConsole: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenThemeSettings: () -> Unit,
@@ -71,6 +72,7 @@ fun MainScreen(
                     },
             ) {
                 SettingsScreen(
+                    onLoggedOut = onLoggedOut,
                     onOpenConsole = onOpenConsole,
                     onOpenNotificationSettings = onOpenNotificationSettings,
                     onOpenThemeSettings = onOpenThemeSettings,

@@ -33,6 +33,9 @@
     <string name="drawer_schedule">课表共建</string>
     <string name="drawer_todo">待办事项</string>
     <string name="settings_title">设置</string>
+    <string name="settings_user_avatar">用户头像</string>
+    <string name="settings_user_unknown">未知用户</string>
+    <string name="settings_logout">退出登录</string>
     <string name="settings_server_connected">已连接服务端</string>
     <string name="settings_server_disconnected">未连接服务端，点击重试</string>
     <string name="settings_server_checking">正在检查服务端</string>

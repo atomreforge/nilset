@@ -44,6 +44,7 @@ Data 层
 - `MainActivity` 使用 `ComponentActivity`、`enableEdgeToEdge`、`ATOMTheme` 和 `NavHost`。
 - 登录页和控制台页分别是 `LoginScreen`、`ConsoleScreen`。
 - 注册页是登录页的附属路由；注册成功后返回登录页并预填用户名。
+- 设置页首项是 `SettingsUserCard`；长按弹出退出按钮，退出完成后由 `MainActivity` 清除主页返回栈并回到登录页。
 - 页面通过 `hiltViewModel()` 获取 ViewModel。
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
 - 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令名和参数段候选；指令名按字母序过滤。
@@ -157,6 +158,7 @@ app/src/main/java/net/atomreforge/nilset/
    ├─ session/              # 会话状态提供给启动路由使用
    ├─ schedule/             # 课表共建 Screen、状态、问候与课程选择逻辑
    ├─ settings/             # 设置页
+   │   └─ 用户卡片位于 `UserCard.kt`，头像字段当前默认为空
    └─ theme/                # Material 3 主题、颜色、字体
 ```
 

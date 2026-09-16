@@ -16,4 +16,5 @@ data class UserInfo(
     val email: String? = null,
     val registerTime: String? = null,
     val role: String = "user",
+    val avatar: String = "",
 )
