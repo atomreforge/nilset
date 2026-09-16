@@ -26,10 +26,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.data.session.UserInfo
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
@@ -145,6 +150,26 @@ fun SettingsUserCard(
                 .align(Alignment.CenterEnd)
                 .padding(end = UserActionInset),
         )
+
+        if (logoutArmed) {
+            val popupOffsetX = with(LocalDensity.current) {
+                -UserActionInset.roundToPx()
+            }
+            Popup(
+                alignment = Alignment.CenterEnd,
+                offset = IntOffset(x = popupOffsetX, y = 0),
+                onDismissRequest = { logoutArmed = false },
+                properties = PopupProperties(focusable = true),
+            ) {
+                SettingsLogoutActionButton(
+                    enabled = true,
+                    onClick = {
+                        logoutArmed = false
+                        onLogout()
+                    },
+                )
+            }
+        }
     }
 }
 
