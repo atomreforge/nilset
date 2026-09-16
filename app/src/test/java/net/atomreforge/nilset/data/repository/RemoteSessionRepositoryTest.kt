@@ -196,11 +196,11 @@ private class FakeDaizyNightApi : DaizyNightApi {
         return refreshResponse ?: throw IllegalStateException("refresh response is not configured")
     }
 
-    override suspend fun getUserMe(username: String): UserInfoResponse {
+    override suspend fun getUserInfo(username: String): UserInfoResponse {
         throw UnsupportedOperationException()
     }
 
-    override suspend fun getCalendar(username: String): CalendarResponse {
+    override suspend fun getAnyCalendar(username: String): CalendarResponse {
         throw UnsupportedOperationException()
     }
 

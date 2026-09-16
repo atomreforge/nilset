@@ -119,11 +119,11 @@ private class FakeCalendarApi(
         throw UnsupportedOperationException()
     }
 
-    override suspend fun getUserMe(username: String): UserInfoResponse {
+    override suspend fun getUserInfo(username: String): UserInfoResponse {
         throw UnsupportedOperationException()
     }
 
-    override suspend fun getCalendar(username: String): CalendarResponse {
+    override suspend fun getAnyCalendar(username: String): CalendarResponse {
         requestedUsernames += username
         if (throwOnGet) throw IllegalStateException("calendar unavailable")
         return calendarResponse

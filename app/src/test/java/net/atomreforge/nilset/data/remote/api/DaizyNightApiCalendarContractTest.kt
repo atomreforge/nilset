@@ -2,7 +2,7 @@ package net.atomreforge.nilset.data.remote.api
 
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
+import net.atomreforge.nilset.data.remote.dto.CalendarItemRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
@@ -33,16 +33,18 @@ class DaizyNightApiCalendarContractTest {
     fun `get calendar uses documented path and json contract`() = runTest {
         server.enqueue(
             MockResponse().setBody(
-                """{"calendar_id":7362514,"records":[
-                    {"weekday":1,"start_min":480,"end_min":570,"title":"数学"}
+                """{"roaming":{"description":"","annotation":""},"uid":1527277,"calendar_id":7362514,"records":[
+                    {"calendar_id":7362514,"roaming":{"description":"","annotation":""},"weekday":1,"start_min":480,"end_min":570,"title":"数学"}
                 ]}""",
             ),
         )
 
-        val calendar = api.getCalendar("alice")
+        val calendar = api.getAnyCalendar("alice")
 
-        assertEquals("/api/v1/user/alice/calendar", server.takeRequest().path)
+        assertEquals("/api/v1/public/user/alice/calendar", server.takeRequest().path)
         assertEquals(7362514, calendar.calendarId)
+        assertEquals(1527277L, calendar.uid)
+        assertEquals(7362514L, calendar.records.single().calendarId)
         assertEquals(1, calendar.records.single().weekday)
     }
 
@@ -54,7 +56,7 @@ class DaizyNightApiCalendarContractTest {
             username = "alice",
             body = CalendarPutRequest(
                 records = listOf(
-                    CalendarItemResponse(weekday = 1, startMin = 480, endMin = 570, title = "数学"),
+                    CalendarItemRequest(weekday = 1, startMin = 480, endMin = 570, title = "数学"),
                 ),
             ),
         )

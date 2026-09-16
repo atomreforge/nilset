@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.calendar.UserCalendar
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
+import net.atomreforge.nilset.data.remote.dto.CalendarItemRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import javax.inject.Inject
@@ -15,7 +16,7 @@ class RemoteCalendarRepository @Inject constructor(
 ) : CalendarRepository {
 
     override suspend fun getCalendar(username: String): Result<UserCalendar> = runCatching {
-        val calendar = api.getCalendar(username)
+        val calendar = api.getAnyCalendar(username)
         UserCalendar(
             calendarId = calendar.calendarId,
             records = calendar.records.map { it.toModel() },
@@ -28,7 +29,7 @@ class RemoteCalendarRepository @Inject constructor(
     ): Result<Unit> = runCatching {
         api.putCalendar(
             username = username,
-            body = CalendarPutRequest(records = records.map { it.toResponse() }),
+            body = CalendarPutRequest(records = records.map { it.toRequest() }),
         )
         Unit
     }.recoverCancellation()
@@ -45,7 +46,7 @@ class RemoteCalendarRepository @Inject constructor(
         title = title,
     )
 
-    private fun CalendarItem.toResponse() = CalendarItemResponse(
+    private fun CalendarItem.toRequest() = CalendarItemRequest(
         weekday = weekday,
         startMin = startMin,
         endMin = endMin,

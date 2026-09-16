@@ -58,7 +58,7 @@ Data 层
 - 应用启动会先等待 DataStore 会话恢复，再根据 `SessionState` 决定初始进入登录页还是主页。
 - `DaizyNightApi` 定义注册、登录、刷新访问令牌、获取用户信息和读写个人课表接口。
 - `AuthInterceptor` 从会话状态读取 access token，并统一添加 `Authorization: Bearer` 头。
-- 用户信息接口使用 `/api/v1/user/{username}/me`；路径用户名来自持久化会话，仅用于服务端属主校验。
+- 用户信息接口使用 `/api/v1/user/{username}/info`；路径用户名来自持久化会话，仅用于服务端属主校验。
 - access token 返回 401 时按配置自动刷新；refresh token 采用一次性轮换语义，成功后整体覆盖 access/refresh token 对。
 - 登出会先保证本地持有可用 token 对，再把当前 refresh token 提交给服务端吊销，最后清空本地会话。
 - `ConsoleHistoryRepository` 是进程内单例，保存控制台输出，避免页面返回后历史丢失。
@@ -96,7 +96,7 @@ Data 层
 
 ### 服务连接
 
-- `ServerConnectionManager` 通过 `GET /api/v1/health/db` 判断服务端连接状态。
+- `ServerConnectionManager` 通过 `GET /api/v1/public/health/db` 判断服务端连接状态。
 - 应用启动时自动探测一次；启动链路只做一次探测，不进行自动轮询或自动重试。
 - 设置页按钮始终可点击并反馈当前状态；只有失败且冷却结束时才发起手动重试。每次检查开始后进入 10 秒冷却，冷却结束前禁用实际重试。
 
@@ -104,9 +104,9 @@ Data 层
 
 - 当前用户的本地课表以 JSON 片段保存在 `nilset_schedule` DataStore；本地记录不存在时显示空课表。
 - 当前用户课表的新增、编辑和删除先写本地 DataStore；离线时不会触发远端请求，恢复连接后会对比本地与远端核心字段并以本地数据覆盖远端。
-- `GET /api/v1/user/{username}/calendar` 保留为后续他人课表读取链路，当前成员列表仍只有登录用户。
+- 远端读取统一使用已认证的公共只读接口 `GET /api/v1/public/user/{username}/calendar`，支持读取任意已存在用户的课表；服务端返回的 `roaming` 等预留字段暂不进入本地模型。
 - 客户端数据模型使用 `weekday`、`startMin`、`endMin`、`title`、`teacher`、`classroom` 和 `note`，展示层负责把分钟转换为 `HH:mm`；当前用户本地课表会固定写出老师、课室和备注字段。
-- 服务端尚未提供成员列表、他人课表和多人共享能力；客户端成员菜单不伪造数据。
+- 服务端已提供他人课表公共读取，但尚未提供成员列表和多人共享能力；客户端成员菜单不伪造数据。
 
 ### 指令
 

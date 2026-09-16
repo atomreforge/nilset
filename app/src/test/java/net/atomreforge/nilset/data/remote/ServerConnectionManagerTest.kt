@@ -138,11 +138,11 @@ private class FakeHealthApi(
         throw AssertionError("unexpected refresh call")
     }
 
-    override suspend fun getUserMe(username: String): UserInfoResponse {
+    override suspend fun getUserInfo(username: String): UserInfoResponse {
         throw AssertionError("unexpected user call")
     }
 
-    override suspend fun getCalendar(username: String): CalendarResponse {
+    override suspend fun getAnyCalendar(username: String): CalendarResponse {
         throw AssertionError("unexpected calendar get call")
     }
 

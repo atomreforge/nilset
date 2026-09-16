@@ -29,11 +29,11 @@ interface DaizyNightApi {
     @POST(ApiExpressions.Endpoint.REFRESH_ACCESS_TOKEN)
     suspend fun refreshAccessToken(@Body body: RefreshTokenRequest): LoginResponse
 
-    @GET(ApiExpressions.Endpoint.USER_ME)
-    suspend fun getUserMe(@Path("username") username: String): UserInfoResponse
+    @GET(ApiExpressions.Endpoint.USER_INFO)
+    suspend fun getUserInfo(@Path("username") username: String): UserInfoResponse
 
-    @GET(ApiExpressions.Endpoint.CALENDAR)
-    suspend fun getCalendar(@Path("username") username: String): CalendarResponse
+    @GET(ApiExpressions.Endpoint.PUBLIC_CALENDAR)
+    suspend fun getAnyCalendar(@Path("username") username: String): CalendarResponse
 
     @PUT(ApiExpressions.Endpoint.CALENDAR)
     suspend fun putCalendar(

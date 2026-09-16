@@ -109,7 +109,7 @@ class RemoteSessionRepository @Inject constructor(
             if (username.isNullOrBlank()) {
                 return Result.failure(IllegalStateException("无法确定当前用户名"))
             }
-            val response = api.getUserMe(username)
+            val response = api.getUserInfo(username)
             _sessionState.update { it.copy(username = response.username) }
             val info = UserInfo(
                 uid = response.uid,
