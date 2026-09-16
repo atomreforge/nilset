@@ -86,6 +86,7 @@ private class HttpLogBridge(private val appLogger: AppLogger) : HttpLoggingInter
         .replace(Regex("(?i)\"access_token\"\\s*:\\s*\"[^\"]*\""), "\"access_token\":\"[REDACTED]\"")
         .replace(Regex("(?i)\"refresh_token\"\\s*:\\s*\"[^\"]*\""), "\"refresh_token\":\"[REDACTED]\"")
         .replace(Regex("(?i)\"register_code\"\\s*:\\s*\"[^\"]*\""), "\"register_code\":\"[REDACTED]\"")
+        .replace(Regex("(?i)\"registercode\"\\s*:\\s*\"[^\"]*\""), "\"registercode\":\"[REDACTED]\"")
 }
 
 @Module

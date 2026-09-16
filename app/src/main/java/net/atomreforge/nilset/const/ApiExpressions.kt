@@ -16,6 +16,7 @@ object ApiExpressions {
         const val REGISTER_WAY = "registerway"
         const val LOGIN_WAY = "loginway"
         const val REGISTER_CODE = "registercode"
+        const val ENTRY_CODE = "entrycode"
         const val MESSAGE = "message"
         const val SESSION = "session"
         const val ACCESS_TOKEN = "access_token"

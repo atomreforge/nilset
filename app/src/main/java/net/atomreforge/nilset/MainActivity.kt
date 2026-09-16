@@ -48,6 +48,7 @@ import net.atomreforge.nilset.ui.console.ConsoleSettingsScreen
 import net.atomreforge.nilset.ui.login.LoginScreen
 import net.atomreforge.nilset.ui.main.MainScreen
 import net.atomreforge.nilset.ui.main.popBackStackIfCurrent
+import net.atomreforge.nilset.ui.register.RegisterScreen
 import net.atomreforge.nilset.ui.settings.ThemeSettingsScreen
 import net.atomreforge.nilset.ui.settings.CustomSettingsScreen
 import net.atomreforge.nilset.ui.settings.NotificationSettingsScreen
@@ -124,9 +125,13 @@ class MainActivity : ComponentActivity() {
                             startDestination = startDestination,
                         ) {
                             composable(AppRoutes.LOGIN) {
+                                val registeredUsername = it.savedStateHandle
+                                    .get<String>(AppRoutes.REGISTERED_USERNAME_KEY)
                                 LoginScreen(
+                                    registeredUsername = registeredUsername,
                                     snackbarHostState = snackbarHostState,
                                     snackbarScope = snackbarScope,
+                                    onNavigateToRegister = { navController.navigate(AppRoutes.REGISTER) },
                                     onNavigateToConsole = { navController.navigate(AppRoutes.CONSOLE) },
                                     onNavigateToHome = {
                                         navController.navigate(AppRoutes.MAIN) {
@@ -135,6 +140,20 @@ class MainActivity : ComponentActivity() {
                                                 inclusive = true
                                             }
                                         }
+                                    },
+                                )
+                            }
+                            composable(AppRoutes.REGISTER) {
+                                RegisterScreen(
+                                    onNavigateBack = {
+                                        navController.popBackStackIfCurrent(AppRoutes.REGISTER)
+                                    },
+                                    onRegistered = { username ->
+                                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                                            AppRoutes.REGISTERED_USERNAME_KEY,
+                                            username,
+                                        )
+                                        navController.popBackStackIfCurrent(AppRoutes.REGISTER)
                                     },
                                 )
                             }

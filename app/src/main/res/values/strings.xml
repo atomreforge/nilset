@@ -3,7 +3,14 @@
     <string name="login_title">「空集」</string>
     <string name="username_hint">用户名</string>
     <string name="password_hint">密码</string>
+    <string name="confirm_password_hint">确认密码</string>
+    <string name="nickname_hint">昵称</string>
+    <string name="register_code_hint">注册码</string>
     <string name="btn_login">登 录</string>
+    <string name="btn_register">注 册</string>
+    <string name="register_title">注 册</string>
+    <string name="register_link">注册账号</string>
+    <string name="back_to_login">返回登录</string>
     <string name="console_link">进入控制台</string>
     <string name="console_title">控制台</string>
     <string name="console_settings">控制台设置</string>

@@ -43,6 +43,7 @@ Data 层
 
 - `MainActivity` 使用 `ComponentActivity`、`enableEdgeToEdge`、`ATOMTheme` 和 `NavHost`。
 - 登录页和控制台页分别是 `LoginScreen`、`ConsoleScreen`。
+- 注册页是登录页的附属路由；注册成功后返回登录页并预填用户名。
 - 页面通过 `hiltViewModel()` 获取 ViewModel。
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
 - 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令名和参数段候选；指令名按字母序过滤。
@@ -90,6 +91,7 @@ Data 层
 ### 会话
 
 - 登录成功后保存 access token、refresh token 和用户信息。
+- 登录接口换取 token 后立即请求当前用户信息；信息请求失败时不保留半完整会话。
 - 应用进程内通过 `SessionState` 暴露状态，磁盘上通过 DataStore 恢复。
 - `AuthInterceptor` 和 `TokenAuthenticator` 通过 `dagger.Lazy` 打破 OkHttp、Retrofit 与会话仓库之间的构建期循环依赖。
 - `auth.autoRefresh` 控制是否注册 401 自动刷新器；当前默认与 debug 联调配置均已启用。
@@ -124,6 +126,7 @@ Data 层
 
 - 测试账号只放在 `app/src/debug/assets/test-account.yaml`，该文件已被 `.gitignore` 排除。
 - 文件存在且 `useLocalLogin: true` 时，debug 包内匹配账号密码后可建立本地会话并进入主页，不依赖服务端。
+- 匹配账号密码以外的输入仍走正常 Retrofit 登录。
 - 文件不存在时走正常 Retrofit 登录；release 包不包含该 debug 资源。
 
 ## 4. 目录映射
@@ -146,6 +149,7 @@ app/src/main/java/net/atomreforge/nilset/
 ├─ di/                       # Hilt Module
 └─ ui/
    ├─ login/                # 登录 Screen / ViewModel
+   ├─ register/             # 注册 Screen / ViewModel 与表单校验
    ├─ console/              # 控制台 Screen / ViewModel
    ├─ calendar/             # 独立月历 Screen 与日期状态
    ├─ home/                 # 主页与侧边栏

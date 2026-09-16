@@ -46,6 +46,7 @@ class RemoteSessionRepositoryTest {
         val dataStore = FakeSessionDataStore()
         val api = FakeDaizyNightApi().apply {
             loginResponse = LoginResponse(ACCESS_TOKEN, REFRESH_TOKEN)
+            userInfoResponse = userInfo()
         }
         val repository = createRepository(api, dataStore)
 
@@ -53,8 +54,63 @@ class RemoteSessionRepositoryTest {
 
         assertTrue(result.isSuccess)
         assertEquals("alice", repository.sessionState.value.username)
+        assertEquals("Alice", repository.sessionState.value.userInfo?.nickname)
         assertEquals(ACCESS_TOKEN, repository.sessionState.value.accessToken)
         assertEquals(REFRESH_TOKEN, dataStore.saved?.refreshToken)
+    }
+
+    @Test
+    fun `login requests complete user info`() = runTest {
+        val api = FakeDaizyNightApi().apply {
+            loginResponse = LoginResponse(ACCESS_TOKEN, REFRESH_TOKEN)
+            userInfoResponse = userInfo()
+        }
+        val repository = createRepository(api, FakeSessionDataStore())
+
+        repository.login("alice", "password")
+
+        assertEquals(
+            LoginRequest(username = "alice", password = "password"),
+            api.loginRequests.single(),
+        )
+        assertEquals("alice", api.requestedUsernames.single())
+    }
+
+    @Test
+    fun `user info failure after login clears session`() = runTest {
+        val dataStore = FakeSessionDataStore()
+        val api = FakeDaizyNightApi().apply {
+            loginResponse = LoginResponse(ACCESS_TOKEN, REFRESH_TOKEN)
+            userInfoError = httpException(404)
+        }
+        val repository = createRepository(api, dataStore)
+
+        val result = repository.login("alice", "password")
+
+        assertTrue(result.isFailure)
+        assertEquals(SessionState(), repository.sessionState.value)
+        assertNull(dataStore.saved)
+    }
+
+    @Test
+    fun `register maps service failure`() = runTest {
+        val api = FakeDaizyNightApi().apply {
+            registerError = httpException(400)
+        }
+        val repository = createRepository(api, FakeSessionDataStore())
+
+        val result = repository.register("alice", "Alice", "password", "abc.def")
+
+        assertEquals(
+            RegisterRequest(
+                username = "alice",
+                nickname = "Alice",
+                password = "password",
+                registerCode = "abc.def",
+            ),
+            api.registerRequests.single(),
+        )
+        assertEquals("注册失败，请检查注册信息或注册码", result.exceptionOrNull()?.message)
     }
 
     @Test
@@ -164,6 +220,17 @@ class RemoteSessionRepositoryTest {
         refreshToken = REFRESH_TOKEN,
     )
 
+    private fun userInfo() = UserInfoResponse(
+        uid = 1L,
+        username = "alice",
+        nickname = "Alice",
+        email = "",
+        registerTime = null,
+        role = "user",
+        githubId = null,
+        githubLogin = null,
+    )
+
     private fun httpException(code: Int): HttpException =
         HttpException(Response.error<Any>(code, ByteArray(0).toResponseBody(null)))
 
@@ -176,17 +243,27 @@ class RemoteSessionRepositoryTest {
 }
 
 private class FakeDaizyNightApi : DaizyNightApi {
+    val registerRequests = mutableListOf<RegisterRequest>()
+    var registerResponse: RegisterResponse? = null
+    var registerError: Throwable? = null
     var loginResponse: LoginResponse? = null
     var loginError: Throwable? = null
+    val loginRequests = mutableListOf<LoginRequest>()
+    var userInfoResponse: UserInfoResponse? = null
+    var userInfoError: Throwable? = null
+    val requestedUsernames = mutableListOf<String>()
     var refreshResponse: LoginResponse? = null
     var refreshError: Throwable? = null
     val signedOutRefreshTokens = mutableListOf<String>()
 
     override suspend fun register(body: RegisterRequest): RegisterResponse {
-        throw UnsupportedOperationException()
+        registerRequests += body
+        registerError?.let { throw it }
+        return registerResponse ?: RegisterResponse("ok")
     }
 
     override suspend fun login(body: LoginRequest): LoginResponse {
+        loginRequests += body
         loginError?.let { throw it }
         return loginResponse ?: throw IllegalStateException("login response is not configured")
     }
@@ -197,7 +274,9 @@ private class FakeDaizyNightApi : DaizyNightApi {
     }
 
     override suspend fun getUserInfo(username: String): UserInfoResponse {
-        throw UnsupportedOperationException()
+        requestedUsernames += username
+        userInfoError?.let { throw it }
+        return userInfoResponse ?: throw IllegalStateException("user info response is not configured")
     }
 
     override suspend fun getAnyCalendar(username: String): CalendarResponse {

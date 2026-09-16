@@ -1,11 +1,15 @@
 package net.atomreforge.nilset.data.remote.dto
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.atomreforge.nilset.const.ApiExpressions
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class RegisterRequest(
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     @SerialName(ApiExpressions.Json.REGISTER_WAY) val registerWay: String = "legacy",
     val username: String,
     val nickname: String,
@@ -13,11 +17,15 @@ data class RegisterRequest(
     @SerialName(ApiExpressions.Json.REGISTER_CODE) val registerCode: String,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class LoginRequest(
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     @SerialName(ApiExpressions.Json.LOGIN_WAY) val loginWay: String = "legacy",
     val username: String,
     val password: String,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
+    @SerialName(ApiExpressions.Json.ENTRY_CODE) val entryCode: String = "",
 )
 
 @Serializable

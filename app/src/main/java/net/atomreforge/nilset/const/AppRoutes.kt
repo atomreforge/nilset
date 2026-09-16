@@ -4,6 +4,8 @@ import android.net.Uri
 
 object AppRoutes {
     const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val REGISTERED_USERNAME_KEY = "registered_username"
     const val CONSOLE = "console"
     const val CONSOLE_SETTINGS = "console/settings"
     const val MAIN = "main"

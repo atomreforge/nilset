@@ -2,6 +2,7 @@ package net.atomreforge.nilset.data.repository
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.io.IOException
 import retrofit2.HttpException
@@ -50,9 +51,18 @@ class RemoteSessionRepository @Inject constructor(
     override suspend fun login(username: String, password: String): Result<Unit> {
         return try {
             val response = api.login(LoginRequest(username = username, password = password))
+            val userInfo = api.getUserInfo(username)
             val state = SessionState(
                 isLoggedIn = true,
                 username = username,
+                userInfo = UserInfo(
+                    uid = userInfo.uid,
+                    username = userInfo.username,
+                    nickname = userInfo.nickname,
+                    email = userInfo.email,
+                    registerTime = userInfo.registerTime,
+                    role = userInfo.role,
+                ),
                 accessToken = response.accessToken,
                 refreshToken = response.refreshToken,
             )
@@ -97,8 +107,10 @@ class RemoteSessionRepository @Inject constructor(
                 )
             )
             Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(toRegisterMessage(e))
         }
     }
 
@@ -213,6 +225,7 @@ class RemoteSessionRepository @Inject constructor(
     }
 
     private fun toLoginMessage(e: Exception): Exception {
+        if (e is CancellationException) throw e
         val message = when (e) {
             is HttpException -> when (e.code()) {
                 400 -> "用户名或密码错误"
@@ -225,6 +238,21 @@ class RemoteSessionRepository @Inject constructor(
             is IOException -> "无法连接服务端，请检查网络或后端地址"
             is SerializationException -> "服务端返回数据异常"
             else -> "登录请求失败"
+        }
+        return IllegalStateException(message, e)
+    }
+
+    private fun toRegisterMessage(e: Exception): Exception {
+        val message = when (e) {
+            is HttpException -> when (e.code()) {
+                400 -> "注册失败，请检查注册信息或注册码"
+                429 -> "请求太频繁，请稍后再试"
+                in 500..599 -> "服务端异常，请稍后再试"
+                else -> "注册失败（${e.code()}）"
+            }
+            is IOException -> "无法连接服务端，请检查网络或后端地址"
+            is SerializationException -> "服务端返回数据异常"
+            else -> "注册请求失败"
         }
         return IllegalStateException(message, e)
     }

@@ -45,10 +45,21 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(password = value) }
     }
 
+    fun onRegisteredUsername(value: String?) {
+        if (value.isNullOrBlank()) return
+        _uiState.update {
+            it.copy(
+                username = value,
+                password = "",
+                loginMessage = "注册成功，请登录",
+            )
+        }
+    }
+
     /** 登录按钮点击：校验输入，把登录动作交给数据层 */
     fun onLoginClicked() {
         val username = _uiState.value.username.trim()
-        val password = _uiState.value.password.trim()
+        val password = _uiState.value.password
 
         if (username.isEmpty() || password.isEmpty()) {
             _uiState.update { it.copy(loginMessage = "请输入用户名和密码") }
@@ -70,15 +81,6 @@ class LoginViewModel @Inject constructor(
                 }
                 return
             }
-
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isLoginSuccess = false,
-                    loginMessage = "用户名或密码错误",
-                )
-            }
-            return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
