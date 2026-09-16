@@ -58,7 +58,7 @@ Data 层
 - `SessionRepository` 是会话业务接口，`RemoteSessionRepository` 是当前实现。
 - `SessionDataStore` 只负责会话的读写和清除，不包含登录业务规则。
 - 应用启动会先等待 DataStore 会话恢复，再根据 `SessionState` 决定初始进入登录页还是主页。
-- `DaizyNightApi` 定义注册、登录、刷新访问令牌、获取用户信息和读写个人课表接口。
+- `DaizyNightApi` 定义注册、登录、刷新访问令牌、获取用户信息、公共读取课表和写入/删除个人课表接口。
 - `AuthInterceptor` 从会话状态读取 access token，并统一添加 `Authorization: Bearer` 头。
 - 用户信息接口使用 `/api/v1/user/{username}/info`；路径用户名来自持久化会话，仅用于服务端属主校验。
 - access token 返回 401 时按配置自动刷新；refresh token 采用一次性轮换语义，成功后整体覆盖 access/refresh token 对。
@@ -69,7 +69,7 @@ Data 层
 - HTTP 日志由 OkHttp 拦截器接入并按状态分级着色。
 - `ConfigLoader.mustLoad()` 加载强类型 YAML 配置，解析或校验失败会快速失败。
 - `CalendarRepository` 分成本地与远端数据源：当前登录用户的课表在远端 PUT 成功后由 `PreferencesLocalCalendarRepository` 在 DataStore 中按用户缓存，缺失时返回空表；远端仓库用于课表同步和他人课表数据源。`ScheduleViewModel` 负责选择数据源、创建/编辑/删除当前用户课程并触发全量 PUT、按星期筛选、排序和计算下一节课。
-- 课表共建页的成员列表目前是只含登录用户的临时占位，等待服务端成员与多人课表 API。
+- 课表共建页的成员列表目前是只含登录用户的临时占位；服务端已提供公共单用户课表读取，成员列表和多人聚合仍待后续 API。
 
 ### Core 层
 
@@ -157,8 +157,7 @@ app/src/main/java/net/atomreforge/nilset/
    ├─ main/                 # 主页/设置共用的底部导航
    ├─ session/              # 会话状态提供给启动路由使用
    ├─ schedule/             # 课表共建 Screen、状态、问候与课程选择逻辑
-   ├─ settings/             # 设置页
-   │   └─ 用户卡片位于 `UserCard.kt`，头像字段当前默认为空
+   ├─ settings/             # 设置页、用户卡片与附属设置页
    └─ theme/                # Material 3 主题、颜色、字体
 ```
 
@@ -180,7 +179,7 @@ app/src/main/java/net/atomreforge/nilset/
 - 没有独立 Domain 层：当前业务规模较小，UseCase 仍按需后置。
 - 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
-- 课表共建页当前用户课表为本地创建和本地持久化；远端个人课表读取链路保留，但成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
+- 课表共建页当前用户课表为本地创建和本地持久化；公共单用户课表读取已接入，但成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
 - 离线课表修改不会进入同步队列；连接恢复或在线修改时按核心字段对比并以本地覆盖远端，同步失败则等待下一次触发。
 - 侧边栏日历当前只是独立月历浏览视图，不加载课表或日程数据，也不提供日期详情。
 - 测试覆盖仍不完整：会话刷新、服务连接、课表仓库/视图模型、主题模型和指令配置补全已有测试，Compose UI 测试不足。
