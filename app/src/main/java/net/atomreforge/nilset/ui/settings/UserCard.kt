@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -40,10 +40,10 @@ import net.atomreforge.nilset.data.session.UserInfo
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 
-private val UserCardMinHeight = 96.dp
+private val UserCardHeight = 96.dp
 private val UserAvatarSize = 56.dp
 private val UserActionSize = 40.dp
-private val UserActionGap = 8.dp
+private val UserActionInset = 28.dp
 
 data class UserCardContent(
     val nickname: String,
@@ -90,7 +90,7 @@ fun SettingsUserCard(
             color = themeContainerColor(),
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = UserCardMinHeight)
+                .height(UserCardHeight)
                 .combinedClickable(
                     onClick = { actionMenuVisible = false },
                     onLongClick = { actionMenuVisible = true },
@@ -99,7 +99,7 @@ fun SettingsUserCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                modifier = Modifier.padding(start = 20.dp, end = 76.dp, top = 20.dp, bottom = 20.dp),
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -141,12 +141,12 @@ fun SettingsUserCard(
         }
 
         if (actionMenuVisible) {
-            val popupOffsetY = with(LocalDensity.current) {
-                -(UserActionGap + UserActionSize).toPx().roundToInt()
+            val popupOffsetX = with(LocalDensity.current) {
+                -UserActionInset.roundToPx()
             }
             Popup(
-                alignment = Alignment.TopCenter,
-                offset = IntOffset(x = 0, y = popupOffsetY),
+                alignment = Alignment.CenterEnd,
+                offset = IntOffset(x = popupOffsetX, y = 0),
                 onDismissRequest = { actionMenuVisible = false },
                 properties = PopupProperties(focusable = true),
             ) {
