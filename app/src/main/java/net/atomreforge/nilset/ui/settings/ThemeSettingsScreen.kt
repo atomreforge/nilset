@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +80,11 @@ private val colorLabels = mapOf(
     ThemeColorFields.SURFACE to "surface（文字 / 图标对比）",
 )
 
+private enum class ThemeClearTarget {
+    Font,
+    Background,
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSettingsScreen(
@@ -88,6 +95,7 @@ fun ThemeSettingsScreen(
     val settings by viewModel.themeSettings.collectAsStateWithLifecycle()
     val useDarkTheme = settings.usesDarkTheme()
     var isInputEnabled by remember { mutableStateOf(false) }
+    var clearTarget by remember { mutableStateOf<ThemeClearTarget?>(null) }
 
     LaunchedEffect(Unit) {
         delay(ThemeEntranceInputDelayMillis)
@@ -230,7 +238,7 @@ fun ThemeSettingsScreen(
                 showBorder = settings.showCardBorders,
                 cardMaskOpacity = settings.cardMaskOpacity,
                 onFontSelected = viewModel::applyCustomFont,
-                onRemoveFont = viewModel::removeCustomFont,
+                onRemoveFont = { clearTarget = ThemeClearTarget.Font },
             )
             ThemeCustomBackgroundCard(
                 settings = settings,
@@ -238,9 +246,45 @@ fun ThemeSettingsScreen(
                 cardMaskOpacity = settings.cardMaskOpacity,
                 onImageSelected = onSelectBackgroundImage,
                 onOpacityChange = viewModel::setBackgroundOpacity,
-                onRemoveImage = viewModel::removeCustomBackgroundImage,
+                onRemoveImage = { clearTarget = ThemeClearTarget.Background },
             )
         }
+    }
+
+    clearTarget?.let { target ->
+        val title = stringResource(R.string.theme_clear_confirm_title)
+        val message = stringResource(
+            when (target) {
+                ThemeClearTarget.Font -> R.string.theme_clear_font_message
+                ThemeClearTarget.Background -> R.string.theme_clear_background_message
+            },
+        )
+        val confirmLabel = stringResource(R.string.theme_clear_confirm)
+        val cancelLabel = stringResource(R.string.cancel)
+
+        AlertDialog(
+            onDismissRequest = { clearTarget = null },
+            title = { Text(title) },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        clearTarget = null
+                        when (target) {
+                            ThemeClearTarget.Font -> viewModel.removeCustomFont()
+                            ThemeClearTarget.Background -> viewModel.removeCustomBackgroundImage()
+                        }
+                    },
+                ) {
+                    Text(confirmLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { clearTarget = null }) {
+                    Text(cancelLabel)
+                }
+            },
+        )
     }
 }
 

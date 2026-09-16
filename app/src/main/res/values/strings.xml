@@ -81,6 +81,11 @@
     <string name="background_crop_load_failed">图片加载失败，请重试</string>
     <string name="retry">重试</string>
     <string name="theme_remove_background_image">移除背景图</string>
+    <string name="theme_clear_confirm_title">确认清除</string>
+    <string name="theme_clear_font_message">确定清除自定义字体并恢复默认字体吗？</string>
+    <string name="theme_clear_background_message">确定清除自定义背景图吗？</string>
+    <string name="theme_clear_confirm">确认清除</string>
+    <string name="cancel">取消</string>
     <string name="theme_save_colors">保存颜色</string>
     <string name="theme_reset_colors">还原默认色</string>
     <string name="theme_invalid_color">格式：#RRGGBB</string>
