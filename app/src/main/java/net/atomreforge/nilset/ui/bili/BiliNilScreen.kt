@@ -109,6 +109,7 @@ private fun BiliVideoContent(
                 Text(info.bvid ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 if (state.availableQualities.isNotEmpty()) {
                     Text(stringResource(R.string.bili_nil_video_quality), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BiliQualitySelector(
                         qualities = state.availableQualities,
                         availableCodes = state.downloadableQualityCodes,
                         selected = state.selectedQuality,
