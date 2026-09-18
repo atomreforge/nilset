@@ -24,6 +24,11 @@ data class BiliDownloadRequest(
     val audioPriority: List<Int> = listOf(30280, 30232, 30216),
     val preferAvc: Boolean = true,
     val filenameTemplate: String = "{bvid}_p{page}_{quality}",
+    val preResolvedCid: Long = 0,
+    val preResolvedVideoUrl: String? = null,
+    val preResolvedAudioUrl: String? = null,
+    val preResolvedVideoLength: Long = -1,
+    val preResolvedAudioLength: Long = -1,
 )
 
 @Serializable

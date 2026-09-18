@@ -19,7 +19,9 @@ import net.atomreforge.nilset.bili.download.BiliDownloadEngine
 import net.atomreforge.nilset.bili.download.BiliDownloadRequest
 import net.atomreforge.nilset.bili.download.BiliSnapshotStore
 import net.atomreforge.nilset.bili.download.BiliTaskState
+import net.atomreforge.nilset.bili.model.BiliAudioQuality
 import net.atomreforge.nilset.bili.model.BiliQuality
+import net.atomreforge.nilset.bili.model.BiliStreamSelector
 import net.atomreforge.nilset.bili.model.BiliVideoReference
 import java.io.File
 import javax.inject.Inject
@@ -60,6 +62,7 @@ class BiliVideoViewModel @Inject constructor(
     init { observeTasks() }
 
     fun updateInput(value: String) { _uiState.update { it.copy(inputText = value) } }
+
     fun selectQuality(q: BiliQuality) { _uiState.update { it.copy(selectedQuality = q) } }
 
     fun resolve() {
@@ -76,7 +79,13 @@ class BiliVideoViewModel @Inject constructor(
                 val play = api.fetchPlayUrl(bvid, cid)
                 val qs = play.accept_quality.map { BiliQuality.fromCode(it) }.filter { it != BiliQuality.UNKNOWN }
                 val downloadable = play.dash?.video?.map { it.id }?.toSet() ?: emptySet()
-                _uiState.update { it.copy(isResolving = false, videoInfo = info, availableQualities = qs, downloadableQualityCodes = downloadable) }
+                _uiState.update {
+                    it.copy(
+                        isResolving = false, videoInfo = info,
+                        availableQualities = qs, downloadableQualityCodes = downloadable,
+                        resolvedCid = cid,
+                    )
+                }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _uiState.update { it.copy(isResolving = false, errorMessage = e.message) } }
         }
@@ -88,7 +97,19 @@ class BiliVideoViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val bvid = resolveInput(s.inputText)
-                val req = BiliDownloadRequest(reference = BiliVideoReference(bvid = bvid), qualityPriority = listOf(s.selectedQuality.code, 64, 32, 16))
+                val api = provider.getApi()
+                val play = api.fetchPlayUrl(bvid, s.resolvedCid)
+                val selector = BiliStreamSelector()
+                val audioP = listOf(BiliAudioQuality.A_192K, BiliAudioQuality.A_132K, BiliAudioQuality.A_64K)
+                val qualityP = listOf(s.selectedQuality, BiliQuality.Q_720P, BiliQuality.Q_480P, BiliQuality.Q_360P)
+                val sel = selector.select(play.dash!!, qualityP, audioP, true)
+                val req = BiliDownloadRequest(
+                    reference = BiliVideoReference(bvid = bvid),
+                    qualityPriority = listOf(s.selectedQuality.code, 64, 32, 16),
+                    preResolvedCid = s.resolvedCid,
+                    preResolvedVideoUrl = sel.videoStream.resolvedUrl,
+                    preResolvedAudioUrl = sel.audioStream?.resolvedUrl,
+                )
                 val id = provider.getEngine().enqueue(req)
                 _uiState.update { it.copy(isEnqueuing = false, activeTaskId = id) }
             } catch (e: CancellationException) { throw e }
