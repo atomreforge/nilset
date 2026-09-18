@@ -1,6 +1,5 @@
 package net.atomreforge.nilset.ui.bili
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -29,23 +30,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.atomreforge.nilset.R
+import net.atomreforge.nilset.bili.download.BiliTaskState
+import net.atomreforge.nilset.bili.model.BiliMergeOutcome
+import net.atomreforge.nilset.bili.model.BiliQuality
 import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 
 @Composable
 fun BiliNilScreen(
     modifier: Modifier = Modifier,
-    viewModel: BiliNilViewModel = hiltViewModel(),
+    coverViewModel: BiliNilViewModel = hiltViewModel(),
+    videoViewModel: BiliVideoViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val coverState by coverViewModel.uiState.collectAsStateWithLifecycle()
+    val videoState by videoViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(
@@ -59,30 +66,26 @@ fun BiliNilScreen(
             selectedIndex = selectedTab,
             onTabSelected = { selectedTab = it },
         )
-
         when (selectedTab) {
-            0 -> BiliCoverContent(state = state, viewModel = viewModel)
-            else -> BiliVideoContent()
+            0 -> BiliCoverContent(state = coverState, viewModel = coverViewModel)
+            else -> BiliVideoContent(state = videoState, viewModel = videoViewModel)
         }
     }
 }
 
 @Composable
-private fun BiliCoverContent(
-    state: BiliNilUiState,
-    viewModel: BiliNilViewModel,
+private fun BiliVideoContent(
+    state: BiliVideoUiState,
+    viewModel: BiliVideoViewModel,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = state.inputText,
             onValueChange = viewModel::updateInput,
-            label = { Text(text = stringResource(R.string.bili_nil_input_label)) },
+            label = { Text(stringResource(R.string.bili_nil_video_input_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-
         Button(
             onClick = viewModel::resolve,
             enabled = !state.isResolving && state.inputText.isNotBlank(),
@@ -90,88 +93,77 @@ private fun BiliCoverContent(
             shape = RoundedCornerShape(8.dp),
         ) {
             if (state.isResolving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(18.dp),
-                    strokeWidth = 2.dp,
-                )
-                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text(text = stringResource(R.string.bili_nil_resolving))
+                CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.padding(horizontal = 4.dp))
+                Text(stringResource(R.string.bili_nil_video_resolving))
             } else {
-                Text(text = stringResource(R.string.bili_nil_resolve))
+                Text(stringResource(R.string.bili_nil_video_resolve))
             }
         }
-
-        state.errorMessageRes?.let { messageRes ->
-            BiliNilCard {
-                Text(
-                    text = stringResource(messageRes),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
+        state.errorMessage?.let { msg ->
+            BiliNilCard { Text(msg, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
         }
-
-        state.details?.let { details ->
+        state.videoInfo?.let { info ->
             BiliNilCard {
-                state.preview?.let { bitmap ->
-                    CoverImage(bitmap = bitmap)
-                }
-                Text(
-                    text = details.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = details.input.displayName,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                details.author?.let { author ->
-                    Text(
-                        text = author,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(info.title ?: "", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(info.bvid ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                if (state.availableQualities.isNotEmpty()) {
+                    Text(stringResource(R.string.bili_nil_video_quality), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BiliQualitySelector(
+                        qualities = state.availableQualities,
+                        selected = state.selectedQuality,
+                        onSelect = viewModel::selectQuality,
                     )
                 }
-                details.uid?.let { uid ->
-                    Text(
-                        text = stringResource(R.string.bili_nil_uid, uid),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                details.description?.let { description ->
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
                 Button(
-                    onClick = viewModel::download,
-                    enabled = !state.isDownloading && !state.isResolving,
+                    onClick = viewModel::enqueueDownload,
+                    enabled = !state.isEnqueuing,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                ) {
-                    if (state.isDownloading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.height(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                        Text(text = stringResource(R.string.bili_nil_downloading))
-                    } else {
-                        Text(text = stringResource(R.string.bili_nil_download))
+                ) { Text(stringResource(R.string.bili_nil_video_download)) }
+            }
+        }
+        if (state.taskState != null && state.taskState != BiliTaskState.QUEUED) {
+            BiliNilCard {
+                val progress = state.taskProgress
+                when (state.taskState) {
+                    BiliTaskState.DOWNLOADING -> {
+                        Text(stringResource(R.string.bili_nil_video_downloading), style = MaterialTheme.typography.titleSmall)
+                        val vd = progress?.videoBytesDownloaded ?: 0
+                        val vt = progress?.videoBytesTotal ?: 0
+                        val fraction = if (vt > 0) vd.toFloat() / vt else 0f
+                        LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                        Text("${formatBytes(vd)} / ${formatBytes(vt)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = viewModel::pauseTask, shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_pause)) }
+                            Button(onClick = viewModel::cancelTask, shape = RoundedCornerShape(8.dp), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.bili_nil_video_cancel)) }
+                        }
                     }
-                }
-
-                state.savedFileName?.let { fileName ->
-                    Text(
-                        text = stringResource(R.string.bili_nil_saved, fileName),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    BiliTaskState.PAUSED -> {
+                        Text(stringResource(R.string.bili_nil_video_paused), style = MaterialTheme.typography.titleSmall)
+                        Button(onClick = viewModel::resumeTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_resume)) }
+                        Button(onClick = viewModel::cancelTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.bili_nil_video_cancel)) }
+                    }
+                    BiliTaskState.COMPLETED -> {
+                        Text(stringResource(R.string.bili_nil_video_completed), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                        when (state.mergeOutcome) {
+                            BiliMergeOutcome.SEPARATE -> Text(stringResource(R.string.bili_nil_video_separate_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            BiliMergeOutcome.MERGED -> Text(stringResource(R.string.bili_nil_video_merge_done), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            else -> {}
+                        }
+                        state.downgradeReason?.let { reason ->
+                            Text(reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Button(onClick = viewModel::cancelTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_resolve)) }
+                    }
+                    BiliTaskState.FAILED -> {
+                        Text(stringResource(R.string.bili_nil_video_failed), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+                        state.errorMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                        Button(onClick = viewModel::cancelTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_resolve)) }
+                    }
+                    else -> {
+                        CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 3.dp)
+                    }
                 }
             }
         }
@@ -179,13 +171,100 @@ private fun BiliCoverContent(
 }
 
 @Composable
-private fun BiliVideoContent() {
-    BiliNilCard {
-        Text(
-            text = stringResource(R.string.bili_nil_video_placeholder),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun BiliQualitySelector(
+    qualities: List<BiliQuality>,
+    selected: BiliQuality,
+    onSelect: (BiliQuality) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        qualities.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { quality ->
+                    val isSelected = quality == selected
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
+                        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else themeContainerBorderColor()),
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { onSelect(quality) },
+                    ) {
+                        Text(
+                            quality.label,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes < 0 -> "--"
+    bytes < 1024 -> "${bytes}B"
+    bytes < 1024 * 1024 -> "${"%.1f".format(bytes / 1024f)}KB"
+    else -> "${"%.1f".format(bytes / (1024f * 1024f))}MB"
+}
+@Composable
+private fun BiliCoverContent(
+    state: BiliNilUiState,
+    viewModel: BiliNilViewModel,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedTextField(
+            value = state.inputText,
+            onValueChange = viewModel::updateInput,
+            label = { Text(text = stringResource(R.string.bili_nil_input_label)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
         )
+        Button(
+            onClick = viewModel::resolve,
+            enabled = !state.isResolving && state.inputText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            if (state.isResolving) {
+                CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                Text(text = stringResource(R.string.bili_nil_resolving))
+            } else {
+                Text(text = stringResource(R.string.bili_nil_resolve))
+            }
+        }
+        state.errorMessageRes?.let { messageRes ->
+            BiliNilCard {
+                Text(text = stringResource(messageRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
+        }
+        state.details?.let { details ->
+            BiliNilCard {
+                state.preview?.let { bitmap -> CoverImage(bitmap = bitmap) }
+                Text(text = details.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = details.input.displayName, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                details.author?.let { author -> Text(text = author, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                details.uid?.let { uid -> Text(text = stringResource(R.string.bili_nil_uid, uid), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                details.description?.let { desc -> Text(text = desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Button(
+                    onClick = viewModel::download,
+                    enabled = !state.isDownloading && !state.isResolving,
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp),
+                ) {
+                    if (state.isDownloading) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        Text(text = stringResource(R.string.bili_nil_downloading))
+                    } else {
+                        Text(text = stringResource(R.string.bili_nil_download))
+                    }
+                }
+                state.savedFileName?.let { fileName ->
+                    Text(text = stringResource(R.string.bili_nil_saved, fileName), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
     }
 }
 
@@ -234,37 +313,28 @@ private fun BiliNilTabItem(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
         )
     }
 }
 
 @Composable
-private fun BiliNilCard(
-    content: @Composable () -> Unit,
-) {
+private fun BiliNilCard(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         color = themeContainerColor(),
         border = BorderStroke(1.dp, themeContainerBorderColor()),
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             content()
         }
     }
 }
 
 @Composable
-private fun CoverImage(bitmap: ImageBitmap) {
+private fun CoverImage(bitmap: androidx.compose.ui.graphics.ImageBitmap) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -272,10 +342,10 @@ private fun CoverImage(bitmap: ImageBitmap) {
             .clip(RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Image(
+        androidx.compose.foundation.Image(
             bitmap = bitmap,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             modifier = Modifier.fillMaxWidth(),
         )
     }

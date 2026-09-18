@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kaml)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(project(":lib-bilidownload"))
     implementation(libs.androidx.datastore.preferences)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
