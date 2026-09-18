@@ -4,6 +4,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,21 +71,17 @@ class BiliDownloadEngine(
         try {
             val req = _tasks.value.firstOrNull { it.id == taskId }?.request ?: return
             updateTask(taskId) { it.copy(title = req.reference.bvid, state = BiliTaskState.DOWNLOADING) }
-            val vp = File(tempDirectory, "${taskId}_v.m4s.part")
-            val ap = File(tempDirectory, "${taskId}_a.m4s.part")
-            var vd = vp.length()
-            var ad = ap.length()
-            var lastUpdate = 0L
-
-            fun shouldUpdate(): Boolean {
-                val now = System.currentTimeMillis()
-                if (now - lastUpdate > 500) { lastUpdate = now; return true }
-                return false
-            }
-
+            val vp = File(tempDirectory, "${taskId}_v.m4s")
+            val ap = File(tempDirectory, "${taskId}_a.m4s")
             val vTotal = req.preResolvedVideoLength
             val aTotal = req.preResolvedAudioLength
-            val videoUrl = req.preResolvedVideoUrl ?: run {
+
+            val videoUrl: String
+            val audioUrl: String?
+            if (req.preResolvedVideoUrl != null) {
+                videoUrl = req.preResolvedVideoUrl
+                audioUrl = req.preResolvedAudioUrl
+            } else {
                 updateTaskState(taskId, BiliTaskState.RESOLVING)
                 val info = apiService.resolveVideo(req.reference.bvid)
                 val cid = info.pages.firstOrNull()?.cid ?: return
@@ -94,22 +92,26 @@ class BiliDownloadEngine(
                 val ap2 = req.audioPriority.map { BiliAudioQuality.fromCode(it) }
                 val sel = streamSelector.select(dash, qp, ap2, req.preferAvc)
                 updateTaskState(taskId, BiliTaskState.DOWNLOADING)
-                sel.videoStream.resolvedUrl
+                videoUrl = sel.videoStream.resolvedUrl
+                audioUrl = sel.audioStream?.resolvedUrl
             }
 
-            val vj = scope.launch {
+            var vd = vp.length()
+            var ad = ap.length()
+            var lastUpdate = System.currentTimeMillis()
+
+            val vDeferred = scope.async {
                 chunkDownloader.downloadToFile(videoUrl, vp, vp.length(), vTotal, onProgress = { bytes ->
                     vd = bytes
-                    if (shouldUpdate()) scope.launch { progress(taskId, vd, vTotal, ad, aTotal) }
+                    val now = System.currentTimeMillis()
+                    if (now - lastUpdate > 500) { lastUpdate = now; scope.launch { progress(taskId, vd, vTotal, ad, aTotal) } }
                 })
             }
-            val aUrl = req.preResolvedAudioUrl
-            val aj = aUrl?.let { url ->
-                scope.launch {
-                    chunkDownloader.downloadToFile(url, ap, ap.length(), aTotal, onProgress = { })
-                }
+            val aDeferred = audioUrl?.let { url ->
+                scope.async { chunkDownloader.downloadToFile(url, ap, ap.length(), aTotal, onProgress = { }) }
             }
-            vj.join(); aj?.join()
+            vDeferred.await()
+            aDeferred?.await()
             updateTaskState(taskId, BiliTaskState.COMPLETED)
         } catch (e: CancellationException) { updateTaskState(taskId, BiliTaskState.PAUSED) }
         catch (e: Exception) { BiliLogger.e(TAG, "Task $taskId failed", e); updateTask(taskId) { it.copy(state = BiliTaskState.FAILED, errorMessage = e.message, retryable = true) } }

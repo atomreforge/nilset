@@ -7,7 +7,8 @@ object BiliExpressions {
     const val REFERER = "https://www.bilibili.com/"
     const val ACCEPT_JSON = "application/json, text/plain, */*"
     const val IMAGE_HOST = "hdslb.com"
-    const val MEDIA_RELATIVE_PATH = "Download/Nilset"
+    const val MEDIA_RELATIVE_PATH = "Download/Nilset/Cover"
+    const val VIDEO_RELATIVE_PATH = "Download/Nilset/Video"
     const val CACHE_DIRECTORY = "bili_nil"
     const val GENERIC_UPSTREAM_CODE = -1
 }
