@@ -68,38 +68,49 @@ class BiliDownloadEngine(
     private suspend fun runTask(taskId: String) {
         try {
             val req = _tasks.value.firstOrNull { it.id == taskId }?.request ?: return
-            if (req.preResolvedVideoUrl != null) {
-                updateTask(taskId) { it.copy(title = req.reference.bvid, state = BiliTaskState.DOWNLOADING) }
-                val vp = File(tempDirectory, "${taskId}_v.m4s.part")
-                val ap = File(tempDirectory, "${taskId}_a.m4s.part")
-                var vd = vp.length()
-                var last = System.currentTimeMillis()
-                val vj = scope.launch { chunkDownloader.downloadToFile(req.preResolvedVideoUrl, vp, vp.length(), req.preResolvedVideoLength, onProgress = { vd = it; val n = System.currentTimeMillis(); if (n - last > 500) { scope.launch { progress(taskId, vd, req.preResolvedVideoLength, 0, -1) }; last = n } }) }
-                val aj = req.preResolvedAudioUrl?.let { url -> scope.launch { chunkDownloader.downloadToFile(url, ap, ap.length(), req.preResolvedAudioLength, onProgress = { }) } }
-                vj.join(); aj?.join()
-                updateTaskState(taskId, BiliTaskState.COMPLETED)
-
-            }
-            updateTaskState(taskId, BiliTaskState.RESOLVING)
-            val info = apiService.resolveVideo(req.reference.bvid)
-            val cid = info.pages.firstOrNull { it.page == req.reference.page }?.cid ?: info.pages.firstOrNull()?.cid ?: return
-            updateTask(taskId) { it.copy(title = info.title ?: "") }
-            val playUrl = apiService.fetchPlayUrl(req.reference.bvid, cid)
-            val dash = playUrl.dash ?: throw BiliApiException(-1, "No DASH")
-            val qp = req.qualityPriority.map { BiliQuality.fromCode(it) }
-            val ap = req.audioPriority.map { BiliAudioQuality.fromCode(it) }
-            var sel = streamSelector.select(dash, qp, ap, req.preferAvc)
-            if (sel.mergeOutcome == BiliMergeOutcome.SEPARATE) streamSelector.autoDowngradeForAvc(dash, sel.selectedQuality, ap)?.let { sel = it }
-            updateTaskState(taskId, BiliTaskState.DOWNLOADING)
+            updateTask(taskId) { it.copy(title = req.reference.bvid, state = BiliTaskState.DOWNLOADING) }
             val vp = File(tempDirectory, "${taskId}_v.m4s.part")
-            val ap2 = File(tempDirectory, "${taskId}_a.m4s.part")
+            val ap = File(tempDirectory, "${taskId}_a.m4s.part")
             var vd = vp.length()
-            var last = System.currentTimeMillis()
-            val vj = scope.launch { chunkDownloader.downloadToFile(sel.videoStream.resolvedUrl, vp, vp.length(), -1, onProgress = { vd = it }) }
-            val aj = sel.audioStream?.let { s -> scope.launch { chunkDownloader.downloadToFile(s.resolvedUrl, ap2, ap2.length(), -1, onProgress = { }) } }
+            var ad = ap.length()
+            var lastUpdate = 0L
+
+            fun shouldUpdate(): Boolean {
+                val now = System.currentTimeMillis()
+                if (now - lastUpdate > 500) { lastUpdate = now; return true }
+                return false
+            }
+
+            val vTotal = req.preResolvedVideoLength
+            val aTotal = req.preResolvedAudioLength
+            val videoUrl = req.preResolvedVideoUrl ?: run {
+                updateTaskState(taskId, BiliTaskState.RESOLVING)
+                val info = apiService.resolveVideo(req.reference.bvid)
+                val cid = info.pages.firstOrNull()?.cid ?: return
+                updateTask(taskId) { it.copy(title = info.title ?: "") }
+                val playUrl = apiService.fetchPlayUrl(req.reference.bvid, cid)
+                val dash = playUrl.dash ?: throw BiliApiException(-1, "No DASH")
+                val qp = req.qualityPriority.map { BiliQuality.fromCode(it) }
+                val ap2 = req.audioPriority.map { BiliAudioQuality.fromCode(it) }
+                val sel = streamSelector.select(dash, qp, ap2, req.preferAvc)
+                updateTaskState(taskId, BiliTaskState.DOWNLOADING)
+                sel.videoStream.resolvedUrl
+            }
+
+            val vj = scope.launch {
+                chunkDownloader.downloadToFile(videoUrl, vp, vp.length(), vTotal, onProgress = { bytes ->
+                    vd = bytes
+                    if (shouldUpdate()) scope.launch { progress(taskId, vd, vTotal, ad, aTotal) }
+                })
+            }
+            val aUrl = req.preResolvedAudioUrl
+            val aj = aUrl?.let { url ->
+                scope.launch {
+                    chunkDownloader.downloadToFile(url, ap, ap.length(), aTotal, onProgress = { })
+                }
+            }
             vj.join(); aj?.join()
-            updateTaskState(taskId, BiliTaskState.MERGING)
-            updateTask(taskId) { it.copy(quality = sel.selectedQuality, mergeOutcome = sel.mergeOutcome, downgradeReason = sel.downgradeReason) }
+            updateTaskState(taskId, BiliTaskState.COMPLETED)
         } catch (e: CancellationException) { updateTaskState(taskId, BiliTaskState.PAUSED) }
         catch (e: Exception) { BiliLogger.e(TAG, "Task $taskId failed", e); updateTask(taskId) { it.copy(state = BiliTaskState.FAILED, errorMessage = e.message, retryable = true) } }
     }
