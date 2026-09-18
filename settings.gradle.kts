@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ATOM"
 include(":app")
+include(":lib-bilidownload")
