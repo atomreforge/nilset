@@ -43,7 +43,6 @@ class BiliCoverRemoteDataSource @Inject constructor(
             BiliContentKind.BV -> requestVideo("bvid", "BV${input.id}", input)
             BiliContentKind.CV -> requestArticle(input)
             BiliContentKind.LIVE -> requestLive(input)
-            BiliContentKind.DYNAMIC -> requestDynamic(input)
         }
     }
 
@@ -157,7 +156,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
     }
 
     private fun requestArticle(input: BiliInputReference): BiliCoverDetails {
-        val url = "https://api.bilibili.com/x/article/view"
+        val url = "https://api.bilibili.com/x/article/viewinfo"
             .toHttpUrl()
             .newBuilder()
             .addQueryParameter("id", input.id)
@@ -168,8 +167,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
                 "Upstream response has no content",
             )
-        val imageUrl = normalizeImageUrl(data?.image_urls?.firstOrNull())
-            ?: normalizeImageUrl(data?.banner_url)
+        val imageUrl = normalizeImageUrl(data?.banner_url)
         if (imageUrl == null) {
             throw BiliCoverException(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
@@ -182,40 +180,6 @@ class BiliCoverRemoteDataSource @Inject constructor(
             imageUrl = imageUrl!!,
             author = data.author_name ?: data.author?.name,
             uid = data.author?.mid,
-            description = null,
-        )
-    }
-
-    private fun requestDynamic(input: BiliInputReference): BiliCoverDetails {
-        val url = "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail"
-            .toHttpUrl()
-            .newBuilder()
-            .addQueryParameter("id", input.id)
-            .build()
-        val response = readJson(url, BiliDynamicEnvelope.serializer())
-        val item = response.data?.item
-            ?: throw BiliCoverException(
-                BiliExpressions.GENERIC_UPSTREAM_CODE,
-                "Upstream response has no content",
-            )
-        val modules = item.modules
-        val moduleDynamic = modules?.moduleDynamic
-        val major = moduleDynamic?.major
-        val rawImageUrl = major?.draw?.items?.firstOrNull()?.src
-            ?: major?.archive?.pic
-        val imageUrl = normalizeImageUrl(rawImageUrl)
-        if (imageUrl == null) {
-            throw BiliCoverException(
-                BiliExpressions.GENERIC_UPSTREAM_CODE,
-                "Dynamic has no downloadable cover",
-            )
-        }
-        return BiliCoverDetails(
-            input = input,
-            title = moduleDynamic?.desc?.text?.takeIf { it.isNotBlank() } ?: "动态 $input",
-            imageUrl = imageUrl,
-            author = modules?.moduleAuthor?.name,
-            uid = modules?.moduleAuthor?.mid,
             description = null,
         )
     }
