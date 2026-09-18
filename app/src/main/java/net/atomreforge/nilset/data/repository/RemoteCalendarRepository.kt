@@ -4,8 +4,6 @@ import kotlinx.coroutines.CancellationException
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.calendar.UserCalendar
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
-import net.atomreforge.nilset.data.remote.dto.CalendarItemRequest
-import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +20,7 @@ open class RemoteCalendarRepository @Inject constructor(
             val calendar = api.getAnyCalendar(username)
             UserCalendar(
                 calendarId = calendar.calendarId,
-                records = calendar.records.map { it.toModel() },
+                records = calendar.records.map(CalendarRoamingMapper::toPublicModel),
             )
         }.recoverCancellation()
 
@@ -32,7 +30,7 @@ open class RemoteCalendarRepository @Inject constructor(
     ): Result<Unit> = runCatching {
         api.putCalendar(
             username = username,
-            body = CalendarPutRequest(records = records.map { it.toRequest() }),
+            body = CalendarPutRequest(records = records.map(CalendarRoamingMapper::toRequest)),
         )
         Unit
     }.recoverCancellation()
@@ -41,20 +39,6 @@ open class RemoteCalendarRepository @Inject constructor(
         api.deleteCalendar(username)
         Unit
     }.recoverCancellation()
-
-    protected fun CalendarItemResponse.toModel() = CalendarItem(
-        weekday = weekday,
-        startMin = startMin,
-        endMin = endMin,
-        title = title,
-    )
-
-    private fun CalendarItem.toRequest() = CalendarItemRequest(
-        weekday = weekday,
-        startMin = startMin,
-        endMin = endMin,
-        title = title,
-    )
 
     protected fun <T> Result<T>.recoverCancellation(): Result<T> {
         exceptionOrNull()?.let { exception ->
@@ -74,7 +58,7 @@ class PrivateRemoteCalendarRepository @Inject constructor(
             val calendar = api.getUserCalendar(username)
             UserCalendar(
                 calendarId = calendar.calendarId,
-                records = calendar.records.map { it.toModel() },
+                records = calendar.records.map(CalendarRoamingMapper::toPrivateModel),
             )
         }.recoverCancellation()
 }

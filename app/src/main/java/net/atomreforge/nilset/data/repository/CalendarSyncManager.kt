@@ -71,6 +71,12 @@ class LocalFirstCalendarSyncManager @Inject constructor(
             },
         )
 
+        if (!localCalendar.isInitialized) {
+            localCalendarRepository.saveCalendar(ownerUsername, remoteCalendar.records)
+                .getOrElse { return Result.failure(it) }
+            return Result.success(Unit)
+        }
+
         if (remoteSignature(localCalendar.records) == remoteSignature(remoteCalendar.records)) {
             return Result.success(Unit)
         }
@@ -80,13 +86,6 @@ class LocalFirstCalendarSyncManager @Inject constructor(
 
     private fun remoteSignature(records: List<CalendarItem>): List<CalendarItem> =
         records
-            .map { record ->
-                record.copy(
-                    teacher = null,
-                    classroom = null,
-                    note = null,
-                )
-            }
             .sortedWith(
                 compareBy({ it.weekday }, { it.startMin }, { it.endMin }, { it.title }),
             )

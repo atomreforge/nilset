@@ -262,6 +262,9 @@ class ScheduleViewModel @Inject constructor(
                 errorMessage = null,
             )
         }
+        if (restored == ownerUsername) {
+            calendarSyncManager.syncIfConnected(ownerUsername)
+        }
         loadCalendar(ownerUsername, restored, refreshing = false, resetSelection = true)
     }
 

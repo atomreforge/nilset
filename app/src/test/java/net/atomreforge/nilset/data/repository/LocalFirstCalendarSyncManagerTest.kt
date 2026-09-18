@@ -103,12 +103,20 @@ class LocalFirstCalendarSyncManagerTest {
     @Test
     fun `connected sync skips put when core records match`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val coreRecord = CalendarItem(weekday = 1, startMin = 480, endMin = 540, title = "数学")
+        val privateRecord = CalendarItem(
+            weekday = 1,
+            startMin = 480,
+            endMin = 540,
+            title = "数学",
+            teacher = "张老师",
+            classroom = "A301",
+            note = "带计算器",
+        )
         val localRepository = FakeLocalCalendarRepository(
-            listOf(coreRecord.copy(teacher = "张老师")),
+            listOf(privateRecord),
         )
         val remoteRepository = RecordingRemoteCalendarRepository(
-            UserCalendar(calendarId = 1L, records = listOf(coreRecord)),
+            UserCalendar(calendarId = 1L, records = listOf(privateRecord)),
         )
         connectedSyncManager(
             testScheduler,
@@ -119,6 +127,64 @@ class LocalFirstCalendarSyncManagerTest {
 
         assertEquals(1, remoteRepository.getCallCount)
         assertEquals(0, remoteRepository.saveCallCount)
+    }
+
+    @Test
+    fun `uninitialized local adopts private remote without overwrite`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val remoteRecord = CalendarItem(
+            weekday = 1,
+            startMin = 480,
+            endMin = 540,
+            title = "数学",
+            teacher = "张老师",
+            classroom = "A301",
+            note = "带计算器",
+        )
+        val localRepository = FakeLocalCalendarRepository(
+            records = emptyList(),
+            initialIsInitialized = false,
+        )
+        val remoteRepository = RecordingRemoteCalendarRepository(
+            UserCalendar(calendarId = 1L, records = listOf(remoteRecord)),
+        )
+        connectedSyncManager(
+            testScheduler,
+            localRepository,
+            remoteRepository,
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, remoteRepository.getCallCount)
+        assertEquals(0, remoteRepository.saveCallCount)
+        assertEquals(listOf(remoteRecord), localRepository.savedRecords)
+        assertEquals(true, localRepository.savedIsInitialized)
+    }
+
+    @Test
+    fun `intentionally empty local overwrites remote`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val localRepository = FakeLocalCalendarRepository(
+            records = emptyList(),
+            initialIsInitialized = true,
+        )
+        val remoteRepository = RecordingRemoteCalendarRepository(
+            UserCalendar(
+                calendarId = 1L,
+                records = listOf(
+                    CalendarItem(weekday = 1, startMin = 480, endMin = 540, title = "数学"),
+                ),
+            ),
+        )
+        connectedSyncManager(
+            testScheduler,
+            localRepository,
+            remoteRepository,
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, remoteRepository.saveCallCount)
+        assertEquals(emptyList<CalendarItem>(), remoteRepository.savedRecords)
     }
 
     @Test
@@ -245,16 +311,25 @@ class LocalFirstCalendarSyncManagerTest {
 
 private class FakeLocalCalendarRepository(
     val records: List<CalendarItem>,
+    private val initialIsInitialized: Boolean = true,
 ) : CalendarRepository {
+    var savedRecords = mutableListOf<CalendarItem>()
+        private set
+    var savedIsInitialized: Boolean = false
+        private set
 
     override suspend fun getCalendar(username: String): Result<UserCalendar> = Result.success(
-        UserCalendar(calendarId = 0L, records = records),
+        UserCalendar(calendarId = 0L, records = records, isInitialized = initialIsInitialized),
     )
 
     override suspend fun saveCalendar(
         username: String,
         records: List<CalendarItem>,
-    ): Result<Unit> = Result.success(Unit)
+    ): Result<Unit> {
+        savedRecords = records.toMutableList()
+        savedIsInitialized = true
+        return Result.success(Unit)
+    }
 
     override suspend fun deleteCalendar(username: String): Result<Unit> = Result.success(Unit)
 }

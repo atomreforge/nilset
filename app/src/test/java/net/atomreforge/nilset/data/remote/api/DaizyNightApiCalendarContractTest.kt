@@ -4,6 +4,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.data.remote.dto.CalendarItemRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
+import net.atomreforge.nilset.data.remote.dto.CalendarRoamingRequest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -70,7 +71,16 @@ class DaizyNightApiCalendarContractTest {
             username = "alice",
             body = CalendarPutRequest(
                 records = listOf(
-                    CalendarItemRequest(weekday = 1, startMin = 480, endMin = 570, title = "数学"),
+                    CalendarItemRequest(
+                        roaming = CalendarRoamingRequest(
+                            description = """{"teacher":"张老师","classroom":"A301"}""",
+                            annotation = "带计算器",
+                        ),
+                        weekday = 1,
+                        startMin = 480,
+                        endMin = 570,
+                        title = "数学",
+                    ),
                 ),
             ),
         )
@@ -79,7 +89,9 @@ class DaizyNightApiCalendarContractTest {
         assertEquals("PUT", request.method)
         assertEquals("/api/v1/user/alice/calendar", request.path)
         assertEquals(
-            """{"records":[{"weekday":1,"start_min":480,"end_min":570,"title":"数学"}]}""",
+            """{"roaming":{"description":"","annotation":""},"records":[""" +
+                """{"roaming":{"description":"{\"teacher\":\"张老师\",\"classroom\":\"A301\"}",""" +
+                """"annotation":"带计算器"},"weekday":1,"start_min":480,"end_min":570,"title":"数学"}]}""",
             request.body.readUtf8(),
         )
         assertEquals("ok", response.message)

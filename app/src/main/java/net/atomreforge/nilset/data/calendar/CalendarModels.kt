@@ -22,6 +22,7 @@ data class CalendarItem(
 data class UserCalendar(
     val calendarId: Long,
     val records: List<CalendarItem>,
+    val isInitialized: Boolean = true,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -29,4 +30,6 @@ data class UserCalendar(
 data class LocalCalendar(
     @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val records: List<CalendarItem> = emptyList(),
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
+    val isInitialized: Boolean = true,
 )

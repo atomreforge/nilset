@@ -1,13 +1,13 @@
 package net.atomreforge.nilset.data.repository
 
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.dto.CalendarRoamingResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarResponse
+import net.atomreforge.nilset.data.remote.dto.CalendarRoamingRequest
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
@@ -18,7 +18,6 @@ import net.atomreforge.nilset.data.remote.dto.RegisterResponse
 import net.atomreforge.nilset.data.remote.dto.SignOutRequest
 import net.atomreforge.nilset.data.remote.dto.UserInfoResponse
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,7 +60,10 @@ class RemoteCalendarRepositoryTest {
                         startMin = 480,
                         endMin = 570,
                         title = "数学",
-                        roaming = CalendarRoamingResponse(description = "private", annotation = "note"),
+                        roaming = CalendarRoamingResponse(
+                            description = """{"teacher":"张老师","classroom":"A301"}""",
+                            annotation = "带计算器",
+                        ),
                     ),
                 ),
             )
@@ -73,7 +75,34 @@ class RemoteCalendarRepositoryTest {
         assertEquals("alice", api.privateRequestedUsernames.single())
         assertEquals(7362514L, result.getOrThrow().calendarId)
         assertEquals("数学", result.getOrThrow().records.single().title)
-        assertNull(result.getOrThrow().records.single().note)
+        assertEquals("张老师", result.getOrThrow().records.single().teacher)
+        assertEquals("A301", result.getOrThrow().records.single().classroom)
+        assertEquals("带计算器", result.getOrThrow().records.single().note)
+    }
+
+    @Test
+    fun `private calendar ignores malformed description json`() = runTest {
+        val api = FakeCalendarApi().apply {
+            privateCalendarResponse = CalendarResponse(
+                calendarId = 1,
+                records = listOf(
+                    CalendarItemResponse(
+                        weekday = 1,
+                        startMin = 480,
+                        endMin = 570,
+                        title = "数学",
+                        roaming = CalendarRoamingResponse(description = "old text", annotation = ""),
+                    ),
+                ),
+            )
+        }
+        val repository = PrivateRemoteCalendarRepository(api)
+
+        val record = repository.getCalendar("alice").getOrThrow().records.single()
+
+        assertNull(record.teacher)
+        assertNull(record.classroom)
+        assertNull(record.note)
     }
 
     @Test
@@ -101,12 +130,18 @@ class RemoteCalendarRepositoryTest {
         assertEquals(570, api.savedCalendar?.records?.single()?.endMin)
         assertEquals("数学", api.savedCalendar?.records?.single()?.title)
 
-        val serializedBody = api.savedCalendar?.let {
-            Json.encodeToString(CalendarPutRequest.serializer(), it)
-        }
-        assertFalse(serializedBody?.contains("teacher") ?: true)
-        assertFalse(serializedBody?.contains("classroom") ?: true)
-        assertFalse(serializedBody?.contains("note") ?: true)
+        val request = api.savedCalendar
+        assertEquals(
+            CalendarRoamingRequest(),
+            request?.roaming,
+        )
+        assertEquals(
+            CalendarRoamingRequest(
+                description = """{"teacher":"张老师","classroom":"A301"}""",
+                annotation = "带计算器",
+            ),
+            request?.records?.single()?.roaming,
+        )
     }
 
     @Test

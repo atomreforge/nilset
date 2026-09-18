@@ -105,10 +105,11 @@ Data 层
 
 ### 课表
 
-- 当前用户的本地课表以 JSON 片段保存在 `nilset_schedule` DataStore；本地记录不存在时显示空课表。
-- 当前用户课表的新增、编辑和删除先写本地 DataStore；离线时不会触发远端请求，恢复连接后会对比本地与远端核心字段并以本地数据覆盖远端。
-- 自己的远端核对使用认证接口 `GET /api/v1/user/{username}/calendar`；查看他人继续使用认证公共只读接口 `GET /api/v1/public/user/{username}/calendar`。服务端返回的 `roaming` 等预留字段暂不进入本地模型。
-- 客户端数据模型使用 `weekday`、`startMin`、`endMin`、`title`、`teacher`、`classroom` 和 `note`，展示层负责把分钟转换为 `HH:mm`；当前用户本地课表会固定写出老师、课室和备注字段。
+- 当前用户的本地课表以 JSON 片段保存在 `nilset_schedule` DataStore；本地记录不存在时显示空课表，并用 `isInitialized=false` 区分“从未初始化”和“刻意清空”。
+- 当前用户课表的新增、编辑和删除先写本地 DataStore；离线时不会触发远端请求，恢复连接后对比本地与远端并以本地数据覆盖远端。
+- 自己的远端核对使用认证接口 `GET /api/v1/user/{username}/calendar`；查看他人继续使用认证公共只读接口 `GET /api/v1/public/user/{username}/calendar`。
+- 私有 `roaming.annotation` 映射到课程备注；`roaming.description` 由客户端写成结构化 JSON，映射到老师和课室。public 课表读取固定忽略 `roaming`，避免私人信息外泄。
+- 客户端数据模型使用 `weekday`、`startMin`、`endMin`、`title`、`teacher`、`classroom` 和 `note`，展示层负责把分钟转换为 `HH:mm`；当前用户本地课表会固定写出老师、课室和备注字段，PUT 会固定写出课表级与课程级 `roaming`。
 - 服务端已提供他人课表公共读取，但尚未提供成员列表和多人共享能力；客户端成员菜单不伪造数据。
 
 ### 指令

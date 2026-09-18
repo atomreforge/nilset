@@ -52,7 +52,7 @@ class PreferencesLocalCalendarRepository @Inject constructor(
         val key = stringPreferencesKey(ScheduleStoreKeys.localCalendar(username))
         val serialized = dataStore.data.first()[key]
         if (serialized.isNullOrBlank()) {
-            UserCalendar(calendarId = 0L, records = emptyList())
+            UserCalendar(calendarId = 0L, records = emptyList(), isInitialized = false)
         } else {
             val calendar = json.decodeFromString(LocalCalendar.serializer(), serialized)
             UserCalendar(
@@ -76,7 +76,7 @@ class PreferencesLocalCalendarRepository @Inject constructor(
         dataStore.edit { preferences ->
             preferences[key] = json.encodeToString(
                 LocalCalendar.serializer(),
-                LocalCalendar(records = records),
+                LocalCalendar(records = records, isInitialized = true),
             )
         }
     }
