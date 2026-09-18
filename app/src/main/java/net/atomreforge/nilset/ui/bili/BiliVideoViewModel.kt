@@ -32,21 +32,19 @@ class BiliVideoEngineProvider @Inject constructor(
     @Volatile private var engine: BiliDownloadEngine? = null
     @Volatile private var apiService: BiliApiService? = null
 
-    fun getEngine(): BiliDownloadEngine = engine ?: synchronized(this) { engine ?: create().also { engine = it.first; }.let { engine!! } }
-    fun getApi(): BiliApiService = apiService ?: synchronized(this) { if (apiService == null) create(); apiService!! }
+    fun getEngine(): BiliDownloadEngine { if (engine == null) init(); return engine!! }
+    fun getApi(): BiliApiService { if (apiService == null) init(); return apiService!! }
 
-    private fun create(): Pair<BiliDownloadEngine, BiliApiService> {
+    @Synchronized private fun init() {
+        if (engine != null) return
         val factory = BiliHttpClientFactory.create(context)
         val client = factory.create()
         val signer = BiliWbiSigner(client)
         val api = BiliApiService(client, signer)
         val tempDir = File(context.cacheDir, "bili_nil_download")
-        val snapshotFile = File(context.filesDir, "bili_download_snapshots.json")
-        val store = BiliSnapshotStore(snapshotFile)
-        val eng = BiliDownloadEngine(client, api, store, tempDir)
+        val snapshotFile = File(context.filesDir, "bili_dl_snapshots.json")
         apiService = api
-        engine = eng
-        return eng to api
+        engine = BiliDownloadEngine(client, api, BiliSnapshotStore(snapshotFile), tempDir)
     }
 }
 
@@ -54,15 +52,12 @@ class BiliVideoEngineProvider @Inject constructor(
 class BiliVideoViewModel @Inject constructor(
     private val provider: BiliVideoEngineProvider,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(BiliVideoUiState())
     val uiState: StateFlow<BiliVideoUiState> = _uiState.asStateFlow()
     private var observeJob: Job? = null
     private var resolveJob: Job? = null
 
-    init {
-        observeTasks()
-    }
+    init { observeTasks() }
 
     fun updateInput(value: String) { _uiState.update { it.copy(inputText = value) } }
     fun selectQuality(q: BiliQuality) { _uiState.update { it.copy(selectedQuality = q) } }
@@ -71,16 +66,17 @@ class BiliVideoViewModel @Inject constructor(
         val s = _uiState.value
         if (s.isResolving || s.inputText.isBlank()) return
         resolveJob?.cancel()
-        _uiState.update { it.copy(isResolving = true, errorMessage = null, videoInfo = null, availableQualities = emptyList()) }
+        _uiState.update { it.copy(isResolving = true, errorMessage = null, videoInfo = null, availableQualities = emptyList(), downloadableQualityCodes = emptySet()) }
         resolveJob = viewModelScope.launch {
             try {
-                val bvid = extractBvid(s.inputText)
+                val bvid = resolveInput(s.inputText)
                 val api = provider.getApi()
                 val info = api.resolveVideo(bvid)
                 val cid = info.pages.firstOrNull()?.cid ?: 0
                 val play = api.fetchPlayUrl(bvid, cid)
                 val qs = play.accept_quality.map { BiliQuality.fromCode(it) }.filter { it != BiliQuality.UNKNOWN }
-                _uiState.update { it.copy(isResolving = false, videoInfo = info, availableQualities = qs) }
+                val downloadable = play.dash?.video?.map { it.id }?.toSet() ?: emptySet()
+                _uiState.update { it.copy(isResolving = false, videoInfo = info, availableQualities = qs, downloadableQualityCodes = downloadable) }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _uiState.update { it.copy(isResolving = false, errorMessage = e.message) } }
         }
@@ -91,11 +87,8 @@ class BiliVideoViewModel @Inject constructor(
         if (s.videoInfo == null || s.isEnqueuing) return
         viewModelScope.launch {
             try {
-                val bvid = extractBvid(s.inputText)
-                val req = BiliDownloadRequest(
-                    reference = BiliVideoReference(bvid = bvid),
-                    qualityPriority = listOf(s.selectedQuality.code, 64, 32, 16),
-                )
+                val bvid = resolveInput(s.inputText)
+                val req = BiliDownloadRequest(reference = BiliVideoReference(bvid = bvid), qualityPriority = listOf(s.selectedQuality.code, 64, 32, 16))
                 val id = provider.getEngine().enqueue(req)
                 _uiState.update { it.copy(isEnqueuing = false, activeTaskId = id) }
             } catch (e: CancellationException) { throw e }
@@ -105,30 +98,23 @@ class BiliVideoViewModel @Inject constructor(
 
     fun pauseTask() { _uiState.value.activeTaskId?.let { provider.getEngine().pause(it) } }
     fun resumeTask() { _uiState.value.activeTaskId?.let { provider.getEngine().resume(it) } }
-    fun cancelTask() {
-        _uiState.value.activeTaskId?.let { provider.getEngine().cancel(it, deleteTemp = true) }
-        _uiState.update { BiliVideoUiState(inputText = it.inputText) }
-    }
+    fun cancelTask() { _uiState.value.activeTaskId?.let { provider.getEngine().cancel(it, true) }; _uiState.update { BiliVideoUiState(inputText = it.inputText) } }
 
     private fun observeTasks() {
         observeJob = viewModelScope.launch {
             provider.getEngine().tasks.collect { tasks ->
                 val id = _uiState.value.activeTaskId ?: return@collect
                 val t = tasks.firstOrNull { it.id == id } ?: return@collect
-                _uiState.update {
-                    it.copy(
-                        taskState = t.state, taskProgress = t.progress,
-                        mergeOutcome = t.mergeOutcome, downgradeReason = t.downgradeReason,
-                        completedOutputPath = if (t.state == BiliTaskState.COMPLETED) t.outputUri else null,
-                    )
-                }
+                _uiState.update { it.copy(taskState = t.state, taskProgress = t.progress, mergeOutcome = t.mergeOutcome, downgradeReason = t.downgradeReason, completedOutputPath = if (t.state == BiliTaskState.COMPLETED) t.outputUri else null) }
             }
         }
     }
 
-    private fun extractBvid(input: String): String {
+    private suspend fun resolveInput(input: String): String {
         val t = input.trim()
         Regex("""BV([0-9A-Za-z]+)""", RegexOption.IGNORE_CASE).find(t)?.let { return "BV${it.groupValues[1]}" }
+        Regex("""^av([0-9]+)$""", RegexOption.IGNORE_CASE).find(t)?.let { return it.groupValues[1] }
+        Regex("""b23\.tv/([0-9A-Za-z]+)""", RegexOption.IGNORE_CASE).find(t)?.let { return provider.getApi().resolveShortLink(it.groupValues[1]) }
         return t
     }
 

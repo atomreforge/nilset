@@ -11,6 +11,7 @@ data class BiliVideoUiState(
     val isResolving: Boolean = false,
     val videoInfo: BiliVideoInfo? = null,
     val availableQualities: List<BiliQuality> = emptyList(),
+    val downloadableQualityCodes: Set<Int> = emptySet(),
     val selectedQuality: BiliQuality = BiliQuality.Q_1080P,
     val isEnqueuing: Boolean = false,
     val errorMessage: String? = null,

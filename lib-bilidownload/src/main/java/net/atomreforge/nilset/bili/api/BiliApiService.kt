@@ -69,6 +69,24 @@ class BiliApiService(
         }
     }
 
+    suspend fun resolveShortLink(code: String): String = withContext(Dispatchers.IO) {
+        var currentUrl = "https://b23.tv/$code"
+        repeat(3) {
+            val request = Request.Builder().url(currentUrl).head().build()
+            client.newCall(request).execute().use { response ->
+                val location = response.header("location")
+                if (response.isRedirect && location != null) {
+                    val bvMatch = Regex("""BV([0-9A-Za-z]+)""", RegexOption.IGNORE_CASE).find(location)
+                    if (bvMatch != null) return@withContext "BV${bvMatch.groupValues[1]}"
+                    val avMatch = Regex("""av([0-9]+)""", RegexOption.IGNORE_CASE).find(location)
+                    if (avMatch != null) return@withContext avMatch.groupValues[1]
+                    currentUrl = location
+                    return@use
+                }
+            }
+        }
+        throw BiliApiException(-1, "Short link could not be resolved")
+    }
     private fun jsonRequest(url: okhttp3.HttpUrl): Request =
         Request.Builder()
             .url(url)

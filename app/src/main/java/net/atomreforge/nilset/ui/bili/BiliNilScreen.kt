@@ -109,8 +109,8 @@ private fun BiliVideoContent(
                 Text(info.bvid ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 if (state.availableQualities.isNotEmpty()) {
                     Text(stringResource(R.string.bili_nil_video_quality), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    BiliQualitySelector(
                         qualities = state.availableQualities,
+                        availableCodes = state.downloadableQualityCodes,
                         selected = state.selectedQuality,
                         onSelect = viewModel::selectQuality,
                     )
@@ -173,6 +173,7 @@ private fun BiliVideoContent(
 @Composable
 private fun BiliQualitySelector(
     qualities: List<BiliQuality>,
+    availableCodes: Set<Int>,
     selected: BiliQuality,
     onSelect: (BiliQuality) -> Unit,
 ) {
@@ -183,15 +184,15 @@ private fun BiliQualitySelector(
                     val isSelected = quality == selected
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
+                        color = if (quality.code !in availableCodes) themeContainerColor().copy(alpha = 0.5f) else if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
                         border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else themeContainerBorderColor()),
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { onSelect(quality) },
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = quality.code in availableCodes) { onSelect(quality) },
                     ) {
                         Text(
                             quality.label,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (quality.code !in availableCodes) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         )
                     }

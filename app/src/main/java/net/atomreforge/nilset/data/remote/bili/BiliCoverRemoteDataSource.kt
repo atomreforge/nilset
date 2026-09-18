@@ -78,7 +78,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
         displayName: String,
     ): BiliCoverFile = withContext(Dispatchers.IO) {
         val url = rawUrl.toHttpUrlOrNull()
-        if (url == null || !isAllowedImageUrl(rawUrl)) {
+        if (url == null || normalizeImageUrl(rawUrl) == null) {
             throw BiliCoverException(BiliExpressions.GENERIC_UPSTREAM_CODE, "Cover URL is not allowed")
         }
 
@@ -137,8 +137,8 @@ class BiliCoverRemoteDataSource @Inject constructor(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
                 "Upstream response has no content",
             )
-        val imageUrl = data?.pic
-        if (!isAllowedImageUrl(imageUrl)) {
+        val imageUrl = normalizeImageUrl(data?.pic)
+        if (imageUrl == null) {
             throw BiliCoverException(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
                 "Upstream response has no allowed cover",
@@ -147,7 +147,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
         return BiliCoverDetails(
             input = input,
             title = data.title.orEmpty(),
-            imageUrl = imageUrl!!,
+            imageUrl = imageUrl,
             author = data.owner?.name,
             uid = data.owner?.mid,
             description = data.desc?.takeIf { it.isNotBlank() },
@@ -167,8 +167,8 @@ class BiliCoverRemoteDataSource @Inject constructor(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
                 "Upstream response has no content",
             )
-        val imageUrl = data?.user_cover
-        if (!isAllowedImageUrl(imageUrl)) {
+        val imageUrl = normalizeImageUrl(data?.user_cover)
+        if (imageUrl == null) {
             throw BiliCoverException(
                 BiliExpressions.GENERIC_UPSTREAM_CODE,
                 "Upstream response has no allowed cover",
@@ -177,7 +177,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
         return BiliCoverDetails(
             input = input,
             title = data.title.orEmpty(),
-            imageUrl = imageUrl!!,
+            imageUrl = imageUrl,
             uid = data.uid,
             author = null,
             description = null,
@@ -221,11 +221,13 @@ class BiliCoverRemoteDataSource @Inject constructor(
             .header("User-Agent", BiliExpressions.USER_AGENT)
             .header("Referer", BiliExpressions.REFERER)
 
-    private fun isAllowedImageUrl(rawUrl: String?): Boolean {
-        val url = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return false
-        val parsed = url.toHttpUrlOrNull() ?: return false
-        return parsed.isHttps && (parsed.host == BiliExpressions.IMAGE_HOST ||
-            parsed.host.endsWith(".${BiliExpressions.IMAGE_HOST}", ignoreCase = true))
+    private fun normalizeImageUrl(rawUrl: String?): String? {
+        val url = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val parsed = url.toHttpUrlOrNull() ?: return null
+        val isTrustedHost = parsed.host == BiliExpressions.IMAGE_HOST ||
+            parsed.host.endsWith(".${BiliExpressions.IMAGE_HOST}", ignoreCase = true)
+        if (!isTrustedHost) return null
+        return parsed.newBuilder().scheme("https").build().toString()
     }
 
     private fun resolveMimeType(declaredMime: String?, file: File): String? {
