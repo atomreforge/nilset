@@ -41,7 +41,6 @@ class BiliCoverRemoteDataSource @Inject constructor(
         when (input.kind) {
             BiliContentKind.AV -> requestVideo("aid", input.id, input)
             BiliContentKind.BV -> requestVideo("bvid", "BV${input.id}", input)
-            BiliContentKind.CV -> requestArticle(input)
             BiliContentKind.LIVE -> requestLive(input)
         }
     }
@@ -155,34 +154,7 @@ class BiliCoverRemoteDataSource @Inject constructor(
         )
     }
 
-    private fun requestArticle(input: BiliInputReference): BiliCoverDetails {
-        val url = "https://api.bilibili.com/x/article/viewinfo"
-            .toHttpUrl()
-            .newBuilder()
-            .addQueryParameter("id", input.id)
-            .build()
-        val response = readJson(url, BiliArticleEnvelope.serializer())
-        val data = response.data
-            ?: throw BiliCoverException(
-                BiliExpressions.GENERIC_UPSTREAM_CODE,
-                "Upstream response has no content",
-            )
-        val imageUrl = data?.banner_url
-        if (!isAllowedImageUrl(imageUrl)) {
-            throw BiliCoverException(
-                BiliExpressions.GENERIC_UPSTREAM_CODE,
-                "Upstream response has no allowed cover",
-            )
-        }
-        return BiliCoverDetails(
-            input = input,
-            title = data.title.orEmpty(),
-            imageUrl = imageUrl!!,
-            author = data.author_name ?: data.author?.name,
-            uid = data.author?.mid,
-            description = null,
-        )
-    }
+
 
     private fun requestLive(input: BiliInputReference): BiliCoverDetails {
         val form = FormBody.Builder().add("id", input.id).build()

@@ -7,11 +7,10 @@ import org.junit.Test
 class BiliInputParserTest {
 
     @Test
-    fun `parses bare video and column ids`() {
+    fun `parses bare video ids`() {
         assertEquals(BiliInput(BiliContentKind.AV, "170001"), BiliInputParser.parse(" 170001 "))
         assertEquals(BiliInput(BiliContentKind.AV, "170001"), BiliInputParser.parse("AV170001"))
         assertEquals(BiliInput(BiliContentKind.BV, "1xx411c7mD"), BiliInputParser.parse("BV1xx411c7mD"))
-        assertEquals(BiliInput(BiliContentKind.CV, "123456"), BiliInputParser.parse("cv123456"))
     }
 
     @Test
@@ -23,10 +22,6 @@ class BiliInputParserTest {
         assertEquals(
             BiliInput(BiliContentKind.BV, "1xx411c7mD"),
             BiliInputParser.parse("https://www.bilibili.com/video/BV1xx411c7mD/"),
-        )
-        assertEquals(
-            BiliInput(BiliContentKind.CV, "123456"),
-            BiliInputParser.parse("https://www.bilibili.com/read/cv123456"),
         )
         assertEquals(
             BiliInput(BiliContentKind.LIVE, "2233"),

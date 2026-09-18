@@ -34,7 +34,7 @@
     <string name="drawer_todo">待办事项</string>
     <string name="drawer_bili_nil">BiliNil</string>
     <string name="bili_nil_description">解析并下载 B站资源</string>
-    <string name="bili_nil_input_label">B站链接 / av / BV / cv / 直播间</string>
+    <string name="bili_nil_input_label">B站链接 / av / BV / 直播间</string>
     <string name="bili_nil_resolve">解析</string>
     <string name="bili_nil_download">下载封面</string>
     <string name="bili_nil_resolving">正在解析封面</string>

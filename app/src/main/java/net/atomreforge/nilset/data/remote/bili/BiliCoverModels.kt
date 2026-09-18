@@ -28,21 +28,6 @@ data class BiliVideoEnvelope(
 ) : BiliEnvelope
 
 @Serializable
-data class BiliArticleData(
-    val banner_url: String? = null,
-    val title: String? = null,
-    val author_name: String? = null,
-    val author: BiliVideoOwner? = null,
-)
-
-@Serializable
-data class BiliArticleEnvelope(
-    override val code: Int = Int.MIN_VALUE,
-    override val message: String? = null,
-    val data: BiliArticleData? = null,
-) : BiliEnvelope
-
-@Serializable
 data class BiliLiveData(
     val user_cover: String? = null,
     val title: String? = null,
@@ -78,7 +63,6 @@ data class BiliInputReference(
         get() = when (kind) {
             BiliContentKind.AV -> "av$id"
             BiliContentKind.BV -> "BV$id"
-            BiliContentKind.CV -> "cv$id"
             BiliContentKind.LIVE -> "live$id"
         }
 }
