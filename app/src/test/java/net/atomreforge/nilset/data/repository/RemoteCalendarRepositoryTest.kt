@@ -4,12 +4,14 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.data.calendar.CalendarItem
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
+import net.atomreforge.nilset.data.remote.dto.CalendarRoamingResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarItemResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarResponse
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RefreshTokenRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
@@ -17,6 +19,7 @@ import net.atomreforge.nilset.data.remote.dto.SignOutRequest
 import net.atomreforge.nilset.data.remote.dto.UserInfoResponse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -44,6 +47,33 @@ class RemoteCalendarRepositoryTest {
             ),
             result.getOrThrow().records,
         )
+    }
+
+    @Test
+    fun `private calendar repository uses private api and maps core records`() = runTest {
+        val api = FakeCalendarApi().apply {
+            privateCalendarResponse = CalendarResponse(
+                calendarId = 7362514,
+                records = listOf(
+                    CalendarItemResponse(
+                        calendarId = 7362514,
+                        weekday = 1,
+                        startMin = 480,
+                        endMin = 570,
+                        title = "数学",
+                        roaming = CalendarRoamingResponse(description = "private", annotation = "note"),
+                    ),
+                ),
+            )
+        }
+        val repository = PrivateRemoteCalendarRepository(api)
+
+        val result = repository.getCalendar("alice")
+
+        assertEquals("alice", api.privateRequestedUsernames.single())
+        assertEquals(7362514L, result.getOrThrow().calendarId)
+        assertEquals("数学", result.getOrThrow().records.single().title)
+        assertNull(result.getOrThrow().records.single().note)
     }
 
     @Test
@@ -104,7 +134,9 @@ private class FakeCalendarApi(
     private val throwOnGet: Boolean = false,
 ) : DaizyNightApi {
     val requestedUsernames = mutableListOf<String>()
+    val privateRequestedUsernames = mutableListOf<String>()
     var calendarResponse = CalendarResponse(calendarId = 1, records = emptyList())
+    var privateCalendarResponse = CalendarResponse(calendarId = 1, records = emptyList())
     var savedCalendar: CalendarPutRequest? = null
 
     override suspend fun register(body: RegisterRequest): RegisterResponse {
@@ -121,6 +153,15 @@ private class FakeCalendarApi(
 
     override suspend fun getUserInfo(username: String): UserInfoResponse {
         throw UnsupportedOperationException()
+    }
+
+    override suspend fun getPublicUserInfo(username: String): PublicUserInfoResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun getUserCalendar(username: String): CalendarResponse {
+        privateRequestedUsernames += username
+        return privateCalendarResponse
     }
 
     override suspend fun getAnyCalendar(username: String): CalendarResponse {

@@ -57,6 +57,15 @@ data class UserInfoResponse(
 )
 
 @Serializable
+data class PublicUserInfoResponse(
+    @SerialName(ApiExpressions.Json.USER_UID) val uid: Long,
+    val username: String,
+    val nickname: String,
+    @SerialName(ApiExpressions.Json.USER_REGISTER_TIME) val registerTime: String? = null,
+    @SerialName(ApiExpressions.Json.USER_ROLE) val role: String = "user",
+)
+
+@Serializable
 data class MessageResponse(
     @SerialName(ApiExpressions.Json.MESSAGE) val message: String,
 )

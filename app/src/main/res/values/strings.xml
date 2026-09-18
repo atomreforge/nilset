@@ -37,6 +37,7 @@
     <string name="settings_user_unknown">未知用户</string>
     <string name="settings_logout">退出登录</string>
     <string name="settings_server_connected">已连接服务端</string>
+    <string name="settings_server_connected_unauthenticated">服务端可达，但尚未认证</string>
     <string name="settings_server_disconnected">未连接服务端，点击重试</string>
     <string name="settings_server_checking">正在检查服务端</string>
     <string name="settings_server_retrying">未连接服务端，正在重试</string>

@@ -1,8 +1,8 @@
 package net.atomreforge.nilset.data.repository
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -23,7 +23,7 @@ interface CalendarSyncManager {
 @Singleton
 class LocalFirstCalendarSyncManager @Inject constructor(
     @param:LocalCalendarSource private val localCalendarRepository: CalendarRepository,
-    @param:RemoteCalendarSource private val remoteCalendarRepository: CalendarRepository,
+    @param:PrivateCalendarSource private val remoteCalendarRepository: CalendarRepository,
     private val sessionRepository: SessionRepository,
     private val serverConnectionManager: ServerConnectionManager,
     @param:ApplicationScope private val scope: CoroutineScope,
@@ -33,27 +33,28 @@ class LocalFirstCalendarSyncManager @Inject constructor(
 
     init {
         scope.launch {
-            serverConnectionManager.uiState
-                .map { it.status }
-                .distinctUntilChanged()
-                .collect { status ->
-                    if (status != ServerConnectionStatus.CONNECTED) return@collect
-
-                    val session = sessionRepository.sessionState.value
-                    val username = session.username ?: session.userInfo?.username
-                    if (session.isLoggedIn && !username.isNullOrBlank()) {
-                        syncIfConnected(username)
-                    }
+            combine(
+                serverConnectionManager.uiState,
+                sessionRepository.sessionState,
+            ) { connection, session ->
+                connection.status to session
+            }.distinctUntilChanged().collect { (status, session) ->
+                val username = session.username ?: session.userInfo?.username
+                if (!isConnectionUsable(status, session.isLoggedIn) || username.isNullOrBlank()) {
+                    return@collect
                 }
+                syncIfConnected(username)
+            }
         }
     }
 
     override suspend fun syncIfConnected(ownerUsername: String): Result<Unit> = syncMutex.withLock {
         val session = sessionRepository.sessionState.value
         val username = session.username ?: session.userInfo?.username
-        val isConnected = serverConnectionManager.uiState.value.status ==
-            ServerConnectionStatus.CONNECTED
-        if (!session.isLoggedIn || username != ownerUsername || !isConnected) {
+        val status = serverConnectionManager.uiState.value.status
+        if (!session.isLoggedIn || username != ownerUsername ||
+            !isConnectionUsable(status, session.isLoggedIn)
+        ) {
             return Result.success(Unit)
         }
 
@@ -90,3 +91,9 @@ class LocalFirstCalendarSyncManager @Inject constructor(
                 compareBy({ it.weekday }, { it.startMin }, { it.endMin }, { it.title }),
             )
 }
+
+private fun isConnectionUsable(
+    status: ServerConnectionStatus,
+    isLoggedIn: Boolean,
+): Boolean = status == ServerConnectionStatus.CONNECTED ||
+    (status == ServerConnectionStatus.CONNECTED_UNAUTHENTICATED && isLoggedIn)

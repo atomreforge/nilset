@@ -4,6 +4,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
 import okhttp3.MediaType.Companion.toMediaType
@@ -68,5 +69,29 @@ class DaizyNightApiAuthContractTest {
             recorded.body.readUtf8(),
         )
         assertEquals(LoginResponse("access", "refresh"), response)
+    }
+
+    @Test
+    fun `public user info uses documented path and json contract`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"uid":1527277,"username":"alice","nickname":"Alice",""" +
+                    """"register_time":"2026-01-02T03:04:05Z","role":"user"}""",
+            ),
+        )
+
+        val response = api.getPublicUserInfo("alice")
+
+        assertEquals("/api/v1/public/user/alice/info", server.takeRequest().path)
+        assertEquals(
+            PublicUserInfoResponse(
+                uid = 1527277L,
+                username = "alice",
+                nickname = "Alice",
+                registerTime = "2026-01-02T03:04:05Z",
+                role = "user",
+            ),
+            response,
+        )
     }
 }

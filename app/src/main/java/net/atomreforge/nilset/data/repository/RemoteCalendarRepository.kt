@@ -10,18 +10,21 @@ import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
-class RemoteCalendarRepository @Inject constructor(
-    private val api: DaizyNightApi,
+open class RemoteCalendarRepository @Inject constructor(
+    protected val api: DaizyNightApi,
 ) : CalendarRepository {
 
-    override suspend fun getCalendar(username: String): Result<UserCalendar> = runCatching {
-        val calendar = api.getAnyCalendar(username)
-        UserCalendar(
-            calendarId = calendar.calendarId,
-            records = calendar.records.map { it.toModel() },
-        )
-    }.recoverCancellation()
+    final override suspend fun getCalendar(username: String): Result<UserCalendar> =
+        fetchCalendar(username)
+
+    protected open suspend fun fetchCalendar(username: String): Result<UserCalendar> =
+        runCatching {
+            val calendar = api.getAnyCalendar(username)
+            UserCalendar(
+                calendarId = calendar.calendarId,
+                records = calendar.records.map { it.toModel() },
+            )
+        }.recoverCancellation()
 
     override suspend fun saveCalendar(
         username: String,
@@ -39,7 +42,7 @@ class RemoteCalendarRepository @Inject constructor(
         Unit
     }.recoverCancellation()
 
-    private fun CalendarItemResponse.toModel() = CalendarItem(
+    protected fun CalendarItemResponse.toModel() = CalendarItem(
         weekday = weekday,
         startMin = startMin,
         endMin = endMin,
@@ -53,10 +56,25 @@ class RemoteCalendarRepository @Inject constructor(
         title = title,
     )
 
-    private fun <T> Result<T>.recoverCancellation(): Result<T> {
+    protected fun <T> Result<T>.recoverCancellation(): Result<T> {
         exceptionOrNull()?.let { exception ->
             if (exception is CancellationException) throw exception
         }
         return this
     }
+}
+
+@Singleton
+class PrivateRemoteCalendarRepository @Inject constructor(
+    api: DaizyNightApi,
+) : RemoteCalendarRepository(api) {
+
+    override suspend fun fetchCalendar(username: String): Result<UserCalendar> =
+        runCatching {
+            val calendar = api.getUserCalendar(username)
+            UserCalendar(
+                calendarId = calendar.calendarId,
+                records = calendar.records.map { it.toModel() },
+            )
+        }.recoverCancellation()
 }

@@ -15,11 +15,13 @@ import java.time.Clock
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 enum class ServerConnectionStatus {
     UNKNOWN,
     CHECKING,
     CONNECTED,
+    CONNECTED_UNAUTHENTICATED,
     DISCONNECTED,
 }
 
@@ -71,6 +73,17 @@ class ServerConnectionManager @Inject constructor(
                 api.healthDb()
                 _uiState.update {
                     it.copy(status = ServerConnectionStatus.CONNECTED, canRetry = false)
+                }
+            } catch (exception: HttpException) {
+                _uiState.update {
+                    if (exception.code() == 401) {
+                        it.copy(
+                            status = ServerConnectionStatus.CONNECTED_UNAUTHENTICATED,
+                            canRetry = false,
+                        )
+                    } else {
+                        it.copy(status = ServerConnectionStatus.DISCONNECTED, canRetry = false)
+                    }
                 }
             } catch (exception: CancellationException) {
                 throw exception

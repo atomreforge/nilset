@@ -11,6 +11,7 @@ import net.atomreforge.nilset.data.remote.dto.CalendarResponse
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RefreshTokenRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
@@ -277,6 +278,14 @@ private class FakeDaizyNightApi : DaizyNightApi {
         requestedUsernames += username
         userInfoError?.let { throw it }
         return userInfoResponse ?: throw IllegalStateException("user info response is not configured")
+    }
+
+    override suspend fun getPublicUserInfo(username: String): PublicUserInfoResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun getUserCalendar(username: String): CalendarResponse {
+        throw UnsupportedOperationException()
     }
 
     override suspend fun getAnyCalendar(username: String): CalendarResponse {

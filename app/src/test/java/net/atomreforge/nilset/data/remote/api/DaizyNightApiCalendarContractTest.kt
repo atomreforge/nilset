@@ -49,6 +49,20 @@ class DaizyNightApiCalendarContractTest {
     }
 
     @Test
+    fun `get self calendar uses authenticated path`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """{"roaming":{"description":"","annotation":""},"uid":1527277,"calendar_id":7362514,"records":[]}""",
+            ),
+        )
+
+        val calendar = api.getUserCalendar("alice")
+
+        assertEquals("/api/v1/user/alice/calendar", server.takeRequest().path)
+        assertEquals(7362514L, calendar.calendarId)
+    }
+
+    @Test
     fun `put calendar uses documented path and request json`() = runTest {
         server.enqueue(MockResponse().setBody("""{"message":"ok"}"""))
 

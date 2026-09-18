@@ -106,13 +106,15 @@ apiPrefix: /api/v1
 - `POST /api/v1/login`
 - `POST /api/v1/refresh-access-token`
 - `GET /api/v1/user/{username}/info`
+- `GET /api/v1/public/user/{username}/info`
 - `GET /api/v1/public/user/{username}/calendar`
+- `GET /api/v1/user/{username}/calendar`
 - `PUT /api/v1/user/{username}/calendar`
 - `DELETE /api/v1/user/{username}/calendar`
 - `GET /api/v1/public/health/db`
 - `POST /api/v1/user/signout`
 
-访问令牌 401 后会按 `auth.autoRefresh` 使用 refresh token 自动换发；当前默认启用。
+访问令牌 401 后会按 `auth.autoRefresh` 使用 refresh token 自动换发；当前默认启用。启动健康检查收到 401 时表示服务端可达但当前会话未认证，不会误报为离线。
 
 ## 配置
 

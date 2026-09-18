@@ -5,6 +5,7 @@ import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
 import net.atomreforge.nilset.data.remote.dto.CalendarPutRequest
 import net.atomreforge.nilset.data.remote.dto.CalendarResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
 import net.atomreforge.nilset.data.remote.dto.RefreshTokenRequest
@@ -31,6 +32,12 @@ interface DaizyNightApi {
 
     @GET(ApiExpressions.Endpoint.USER_INFO)
     suspend fun getUserInfo(@Path("username") username: String): UserInfoResponse
+
+    @GET(ApiExpressions.Endpoint.PUBLIC_USER_INFO)
+    suspend fun getPublicUserInfo(@Path("username") username: String): PublicUserInfoResponse
+
+    @GET(ApiExpressions.Endpoint.CALENDAR)
+    suspend fun getUserCalendar(@Path("username") username: String): CalendarResponse
 
     @GET(ApiExpressions.Endpoint.PUBLIC_CALENDAR)
     suspend fun getAnyCalendar(@Path("username") username: String): CalendarResponse

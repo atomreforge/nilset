@@ -20,6 +20,7 @@ import net.atomreforge.nilset.data.remote.dto.CalendarResponse
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RefreshTokenRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
@@ -29,6 +30,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ServerConnectionManagerTest {
@@ -110,6 +115,35 @@ class ServerConnectionManagerTest {
         assertEquals(ServerConnectionStatus.CONNECTED, manager.uiState.value.status)
     }
 
+    @Test
+    fun `unauthorized health check means reachable but unauthenticated`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakeHealthApi(error = httpException(401))
+        val manager = ServerConnectionManager(
+            api = api,
+            scope = CoroutineScope(SupervisorJob() + dispatcher),
+            clock = mutableClock(testScheduler),
+        )
+
+        manager.startInitialCheckIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(
+            ServerConnectionStatus.CONNECTED_UNAUTHENTICATED,
+            manager.uiState.value.status,
+        )
+        assertFalse(manager.uiState.value.canRetry)
+
+        advanceTimeBy(ServerConnectionManager.RETRY_COOLDOWN_MILLIS)
+        advanceUntilIdle()
+
+        assertEquals(
+            ServerConnectionStatus.CONNECTED_UNAUTHENTICATED,
+            manager.uiState.value.status,
+        )
+        assertFalse(manager.uiState.value.canRetry)
+    }
+
     private fun mutableClock(scheduler: TestCoroutineScheduler): Clock = object : Clock() {
         override fun getZone(): ZoneId = ZoneId.of("UTC")
 
@@ -117,6 +151,14 @@ class ServerConnectionManagerTest {
 
         override fun instant(): Instant = Instant.ofEpochMilli(scheduler.currentTime)
     }
+
+    private fun httpException(code: Int): HttpException =
+        HttpException(
+            Response.error<MessageResponse>(
+                code,
+                """{"message":"unauthorized"}""".toResponseBody("application/json".toMediaType()),
+            ),
+        )
 }
 
 private class FakeHealthApi(
@@ -140,6 +182,14 @@ private class FakeHealthApi(
 
     override suspend fun getUserInfo(username: String): UserInfoResponse {
         throw AssertionError("unexpected user call")
+    }
+
+    override suspend fun getPublicUserInfo(username: String): PublicUserInfoResponse {
+        throw AssertionError("unexpected public user call")
+    }
+
+    override suspend fun getUserCalendar(username: String): CalendarResponse {
+        throw AssertionError("unexpected private calendar call")
     }
 
     override suspend fun getAnyCalendar(username: String): CalendarResponse {

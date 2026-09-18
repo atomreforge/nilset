@@ -8,6 +8,7 @@ object ApiExpressions {
         const val USER_INFO = "api/v1/user/{username}/info"
         const val CALENDAR = "api/v1/user/{username}/calendar"
         const val PUBLIC_CALENDAR = "api/v1/public/user/{username}/calendar"
+        const val PUBLIC_USER_INFO = "api/v1/public/user/{username}/info"
         const val HEALTH_DB = "api/v1/public/health/db"
         const val SIGN_OUT = "api/v1/user/signout"
     }

@@ -40,7 +40,9 @@ import net.atomreforge.nilset.data.repository.PreferencesConfigRepository
 import net.atomreforge.nilset.data.repository.PreferencesLocalCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarRepository
 import net.atomreforge.nilset.data.repository.RemoteCalendarSource
+import net.atomreforge.nilset.data.repository.PrivateCalendarSource
 import net.atomreforge.nilset.data.repository.PreferencesScheduleViewRepository
+import net.atomreforge.nilset.data.repository.PrivateRemoteCalendarRepository
 import net.atomreforge.nilset.data.repository.ScheduleViewRepository
 import net.atomreforge.nilset.data.remote.api.DaizyNightApi
 import net.atomreforge.nilset.data.remote.interceptor.AuthInterceptor
@@ -227,6 +229,13 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindRemoteCalendarSource(
         impl: RemoteCalendarRepository,
+    ): CalendarRepository
+
+    @Binds
+    @PrivateCalendarSource
+    @Singleton
+    abstract fun bindPrivateCalendarSource(
+        impl: PrivateRemoteCalendarRepository,
     ): CalendarRepository
 
     @Binds

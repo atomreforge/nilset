@@ -81,10 +81,14 @@ fun SettingsScreen(
                 actions = {
                     val isRetryEnabled = serverConnection.status == ServerConnectionStatus.DISCONNECTED &&
                         serverConnection.canRetry
+                    val isConnected = serverConnection.status == ServerConnectionStatus.CONNECTED ||
+                        serverConnection.status == ServerConnectionStatus.CONNECTED_UNAUTHENTICATED
                     val statusMessage = stringResource(
                         when {
                             serverConnection.status == ServerConnectionStatus.CONNECTED ->
                                 R.string.settings_server_connected
+                            serverConnection.status == ServerConnectionStatus.CONNECTED_UNAUTHENTICATED ->
+                                R.string.settings_server_connected_unauthenticated
                             serverConnection.status == ServerConnectionStatus.CHECKING ->
                                 R.string.settings_server_checking
                             isRetryEnabled -> R.string.settings_server_retrying
@@ -104,7 +108,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             painter = painterResource(
-                                if (serverConnection.status == ServerConnectionStatus.CONNECTED) {
+                                if (isConnected) {
                                     R.drawable.ic_tick
                                 } else {
                                     R.drawable.ic_cross
@@ -113,12 +117,16 @@ fun SettingsScreen(
                             contentDescription = stringResource(
                                 when (serverConnection.status) {
                                     ServerConnectionStatus.CONNECTED -> R.string.settings_server_connected
+                                    ServerConnectionStatus.CONNECTED_UNAUTHENTICATED ->
+                                        R.string.settings_server_connected_unauthenticated
                                     ServerConnectionStatus.CHECKING -> R.string.settings_server_checking
                                     else -> R.string.settings_server_disconnected
                                 },
                             ),
                             tint = when (serverConnection.status) {
                                 ServerConnectionStatus.CONNECTED -> MaterialTheme.colorScheme.primary
+                                ServerConnectionStatus.CONNECTED_UNAUTHENTICATED ->
+                                    MaterialTheme.colorScheme.primary
                                 ServerConnectionStatus.CHECKING -> MaterialTheme.colorScheme.onSurfaceVariant
                                 else -> MaterialTheme.colorScheme.error
                             },

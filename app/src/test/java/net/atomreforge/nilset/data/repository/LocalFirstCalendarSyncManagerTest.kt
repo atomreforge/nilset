@@ -21,6 +21,7 @@ import net.atomreforge.nilset.data.remote.dto.CalendarResponse
 import net.atomreforge.nilset.data.remote.dto.LoginRequest
 import net.atomreforge.nilset.data.remote.dto.LoginResponse
 import net.atomreforge.nilset.data.remote.dto.MessageResponse
+import net.atomreforge.nilset.data.remote.dto.PublicUserInfoResponse
 import net.atomreforge.nilset.data.remote.dto.RefreshTokenRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterRequest
 import net.atomreforge.nilset.data.remote.dto.RegisterResponse
@@ -30,6 +31,10 @@ import net.atomreforge.nilset.data.remote.interceptor.FakeSessionRepository
 import net.atomreforge.nilset.data.session.SessionState
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalFirstCalendarSyncManagerTest {
@@ -154,6 +159,37 @@ class LocalFirstCalendarSyncManagerTest {
         assertEquals(localRepository.records, remoteRepository.savedRecords)
     }
 
+    @Test
+    fun `authenticated session syncs after unauthorized health check`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val localRecords = listOf(
+            CalendarItem(weekday = 1, startMin = 480, endMin = 540, title = "数学"),
+        )
+        val localRepository = FakeLocalCalendarRepository(localRecords)
+        val remoteRepository = RecordingRemoteCalendarRepository(
+            UserCalendar(calendarId = 1L, records = emptyList()),
+        )
+        val connectionManager = ServerConnectionManager(
+            api = FakeHealthApi(error = unauthorizedHttpException()),
+            scope = CoroutineScope(SupervisorJob() + dispatcher),
+            clock = schedulerClock(testScheduler),
+        )
+        connectionManager.startInitialCheckIfNeeded()
+        LocalFirstCalendarSyncManager(
+            localCalendarRepository = localRepository,
+            remoteCalendarRepository = remoteRepository,
+            sessionRepository = FakeSessionRepository(
+                SessionState(isLoggedIn = true, username = "alice"),
+            ),
+            serverConnectionManager = connectionManager,
+            scope = CoroutineScope(SupervisorJob() + dispatcher),
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, remoteRepository.saveCallCount)
+        assertEquals(localRecords, remoteRepository.savedRecords)
+    }
+
     private fun connectedSyncManager(
         scheduler: TestCoroutineScheduler,
         localRepository: FakeLocalCalendarRepository,
@@ -197,6 +233,14 @@ class LocalFirstCalendarSyncManagerTest {
 
         override fun instant(): Instant = Instant.ofEpochMilli(scheduler.currentTime)
     }
+
+    private fun unauthorizedHttpException(): HttpException =
+        HttpException(
+            Response.error<MessageResponse>(
+                401,
+                """{"message":"unauthorized"}""".toResponseBody("application/json".toMediaType()),
+            ),
+        )
 }
 
 private class FakeLocalCalendarRepository(
@@ -260,6 +304,12 @@ private class FakeHealthApi(
 
     override suspend fun getUserInfo(username: String): UserInfoResponse =
         throw AssertionError("unexpected user call")
+
+    override suspend fun getPublicUserInfo(username: String): PublicUserInfoResponse =
+        throw AssertionError("unexpected public user call")
+
+    override suspend fun getUserCalendar(username: String): CalendarResponse =
+        throw AssertionError("unexpected private calendar call")
 
     override suspend fun getAnyCalendar(username: String): CalendarResponse =
         throw AssertionError("unexpected calendar get call")
