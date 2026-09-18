@@ -84,6 +84,7 @@ class BiliVideoViewModel @Inject constructor(
                         isResolving = false, videoInfo = info,
                         availableQualities = qs, downloadableQualityCodes = downloadable,
                         resolvedCid = cid,
+                        cachedPlayUrl = play,
                     )
                 }
             } catch (e: CancellationException) { throw e }
@@ -94,13 +95,17 @@ class BiliVideoViewModel @Inject constructor(
     fun enqueueDownload() {
         val s = _uiState.value
         if (s.videoInfo == null || s.isEnqueuing) return
+        if (s.selectedQuality.code !in s.downloadableQualityCodes) {
+            _uiState.update { it.copy(errorMessage = "该画质需要登录 B 站账号后才能下载，当前未登录仅支持 360P/480P") }
+            return
+        }
         viewModelScope.launch {
             try {
                 val bvid = resolveInput(s.inputText)
-                val api = provider.getApi()
-                val play = api.fetchPlayUrl(bvid, s.resolvedCid)
+                // Use cached playUrl from resolve
                 val selector = BiliStreamSelector()
                 val audioP = listOf(BiliAudioQuality.A_192K, BiliAudioQuality.A_132K, BiliAudioQuality.A_64K)
+                val play = s.cachedPlayUrl ?: throw IllegalStateException("PlayUrl not cached")
                 val qualityP = listOf(s.selectedQuality, BiliQuality.Q_720P, BiliQuality.Q_480P, BiliQuality.Q_360P)
                 val sel = selector.select(play.dash!!, qualityP, audioP, true)
                 val req = BiliDownloadRequest(

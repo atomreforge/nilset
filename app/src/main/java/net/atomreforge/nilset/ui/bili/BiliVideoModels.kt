@@ -13,6 +13,7 @@ data class BiliVideoUiState(
     val availableQualities: List<BiliQuality> = emptyList(),
     val downloadableQualityCodes: Set<Int> = emptySet(),
     val resolvedCid: Long = 0,
+    val cachedPlayUrl: net.atomreforge.nilset.bili.model.BiliPlayUrlData? = null,
     val resolvedVideoUrl: String? = null,
     val resolvedAudioUrl: String? = null,
     val resolvedVideoLength: Long = -1,
