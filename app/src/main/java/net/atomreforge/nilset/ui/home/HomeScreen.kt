@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import net.atomreforge.nilset.R
 import net.atomreforge.nilset.ui.calendar.CalendarScreen
+import net.atomreforge.nilset.ui.bili.BiliNilScreen
 import net.atomreforge.nilset.ui.schedule.ScheduleScreen
 import net.atomreforge.nilset.ui.theme.themeContainerColor
 import net.atomreforge.nilset.ui.theme.themeDrawerMaskColor
@@ -99,6 +100,7 @@ fun HomeScreen(
         stringResource(R.string.drawer_note),
         stringResource(R.string.drawer_todo),
         stringResource(R.string.drawer_schedule),
+        stringResource(R.string.drawer_bili_nil),
     )
     val destinationDetails = listOf(
         stringResource(R.string.home_empty),
@@ -106,6 +108,7 @@ fun HomeScreen(
         stringResource(R.string.home_note_empty),
         stringResource(R.string.home_todo_empty),
         stringResource(R.string.home_schedule_empty),
+        stringResource(R.string.bili_nil_description),
     )
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -159,7 +162,8 @@ fun HomeScreen(
                                         1 -> DrawerIcon(R.drawable.ic_event, index == selectedDestination)
                                         2 -> DrawerIcon(R.drawable.ic_note, index == selectedDestination)
                                         3 -> DrawerIcon(R.drawable.ic_todo, index == selectedDestination)
-                                        else -> DrawerIcon(R.drawable.ic_schedule, index == selectedDestination)
+                                        4 -> DrawerIcon(R.drawable.ic_schedule, index == selectedDestination)
+                                        else -> DrawerIcon(R.drawable.ic_bilibili, index == selectedDestination, useBrandColor = true)
                                     }
                                 },
                                 onClick = {
@@ -211,6 +215,8 @@ fun HomeScreen(
                     CalendarScreen()
             } else if (selectedDestination == 4) {
                 ScheduleScreen()
+            } else if (selectedDestination == 5) {
+                BiliNilScreen()
             } else if (selectedDestination == 0) {
                 HomeTextContent()
             } else {
@@ -263,14 +269,18 @@ private suspend fun DrawerState.openElastic() {
 }
 
 @Composable
-private fun DrawerIcon(iconResource: Int, isSelected: Boolean) {
+private fun DrawerIcon(
+    iconResource: Int,
+    isSelected: Boolean,
+    useBrandColor: Boolean = false,
+) {
     Icon(
         painter = painterResource(iconResource),
         contentDescription = null,
-        tint = if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+        tint = when {
+            useBrandColor -> Color(0xFFFB7299)
+            isSelected -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
     )
 }

@@ -49,7 +49,7 @@ Data 层
 - ViewModel 持有 StateFlow 驱动的不可变 UiState，UI 不直接访问 Repository。
 - 控制台输入框使用 Material 3 `ExposedDropdownMenuBox` 提供指令名和参数段候选；指令名按字母序过滤。
 - 登录反馈使用 Material 3 `SnackbarHost`；登录成功后清除登录页返回栈并进入主页。
-- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏；日历月历与课表共建已接入，随心记和待办事项暂作占位栏展示。
+- 主页使用 Material 3 `ModalNavigationDrawer` 提供侧边栏；日历月历、课表共建和 BiliNil 封面工具已接入，随心记和待办事项暂作占位栏展示。
 - 主页与设置页共用 Material 3 `NavigationBar`；设置是独立顶层路由，不作为侧边栏项。
 - 主页和设置页在主路由内并排布局，通过 `graphicsLayer` 平移共享同一版面；切换动画可被新的导航目标立即接管。
 
@@ -123,6 +123,13 @@ Data 层
 - `console/settings` 是控制台的附属路由；当前承载控制台背景开关，不承载独立主导航入口。
 - 控制台输出字号保存在主题设置中；该设置只应用于控制台输出文本，不影响输入框、TopBar或其他页面文字。
 - 所有路由级返回和完成后的弹栈统一检查当前目标 route；快速重复点击时，只有仍在发起页时才执行一次返回，避免弹出发起页导致空白。
+
+### BiliNil
+
+- `BiliInputParser` 本地识别 av、BV、cv、直播间和 `b23.tv` 输入；短链由独立客户端手动跟随并限制为 3 跳。
+- av/BV 使用视频 view 接口，cv 使用专栏 viewinfo 接口，直播间使用表单请求的房间信息接口。
+- BiliNil 的 OkHttp 客户端不接入 Nilset 认证拦截器或动态服务端地址；请求只携带浏览器风格的 UA/Referer。
+- 封面必须来自 HTTPS `hdslb.com` 或其子域；响应先进入 `cacheDir/bili_nil`，预览按尺寸降采样，保存时流式复制到 `Downloads/Nilset`。
 
 ### 本地测试账号
 

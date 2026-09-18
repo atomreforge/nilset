@@ -29,6 +29,7 @@ import net.atomreforge.nilset.data.config.AppConfig
 import net.atomreforge.nilset.data.config.ConfigLoader
 import net.atomreforge.nilset.data.config.DurationParser
 import net.atomreforge.nilset.const.ConfigStoreKeys
+import net.atomreforge.nilset.const.BiliExpressions
 import net.atomreforge.nilset.data.repository.CalendarRepository
 import net.atomreforge.nilset.data.repository.CalendarSyncManager
 import net.atomreforge.nilset.data.repository.ConfigRepository
@@ -60,6 +61,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
+import java.io.File
 import java.time.Clock
 import javax.inject.Singleton
 
@@ -132,6 +134,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideClock(): Clock = Clock.systemDefaultZone()
+
+    @Provides
+    @Singleton
+    @BiliCacheDirectory
+    fun provideBiliCacheDirectory(@ApplicationContext context: Context): File =
+        File(context.cacheDir, BiliExpressions.CACHE_DIRECTORY)
 
     @Provides
     @Singleton
