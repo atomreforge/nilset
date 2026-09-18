@@ -30,6 +30,7 @@ data class BiliVideoEnvelope(
 @Serializable
 data class BiliArticleData(
     val banner_url: String? = null,
+    val image_urls: List<String>? = null,
     val title: String? = null,
     val author_name: String? = null,
     val author: BiliVideoOwner? = null,
@@ -56,6 +57,69 @@ data class BiliLiveEnvelope(
     val data: BiliLiveData? = null,
 ) : BiliEnvelope
 
+@Serializable
+data class BiliDynamicAuthorModule(
+    val name: String? = null,
+    val mid: Long? = null,
+)
+
+@Serializable
+data class BiliDynamicDrawItem(
+    val src: String? = null,
+)
+
+@Serializable
+data class BiliDynamicMajorArchive(
+    val bvid: String? = null,
+    val pic: String? = null,
+)
+
+@Serializable
+data class BiliDynamicMajor(
+    val draw: BiliDynamicDrawWrapper? = null,
+    val archive: BiliDynamicMajorArchive? = null,
+)
+
+@Serializable
+data class BiliDynamicDrawWrapper(
+    val items: List<BiliDynamicDrawItem>? = null,
+)
+
+@Serializable
+data class BiliDynamicDesc(
+    val text: String? = null,
+)
+
+@Serializable
+data class BiliDynamicModuleDynamic(
+    val desc: BiliDynamicDesc? = null,
+    val major: BiliDynamicMajor? = null,
+)
+
+@Serializable
+data class BiliDynamicModules(
+    @kotlinx.serialization.SerialName("module_author") val moduleAuthor: BiliDynamicAuthorModule? = null,
+    @kotlinx.serialization.SerialName("module_dynamic") val moduleDynamic: BiliDynamicModuleDynamic? = null,
+)
+
+@Serializable
+data class BiliDynamicItem(
+    @kotlinx.serialization.SerialName("id_str") val idStr: String? = null,
+    val modules: BiliDynamicModules? = null,
+)
+
+@Serializable
+data class BiliDynamicData(
+    val item: BiliDynamicItem? = null,
+)
+
+@Serializable
+data class BiliDynamicEnvelope(
+    override val code: Int = Int.MIN_VALUE,
+    override val message: String? = null,
+    val data: BiliDynamicData? = null,
+) : BiliEnvelope
+
 interface BiliEnvelope {
     val code: Int
     val message: String?
@@ -80,6 +144,7 @@ data class BiliInputReference(
             BiliContentKind.BV -> "BV$id"
             BiliContentKind.CV -> "cv$id"
             BiliContentKind.LIVE -> "live$id"
+            BiliContentKind.DYNAMIC -> "dynamic$id"
         }
 }
 

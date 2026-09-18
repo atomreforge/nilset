@@ -5,6 +5,7 @@ enum class BiliContentKind {
     BV,
     CV,
     LIVE,
+    DYNAMIC,
 }
 
 data class BiliInput(
@@ -17,6 +18,7 @@ data class BiliInput(
             BiliContentKind.BV -> "BV$id"
             BiliContentKind.CV -> "cv$id"
             BiliContentKind.LIVE -> "live$id"
+            BiliContentKind.DYNAMIC -> "dynamic$id"
         }
 }
 
@@ -29,6 +31,9 @@ object BiliInputParser {
     private val cvBare = Regex("""^(?:cv)([0-9]+)$""", RegexOption.IGNORE_CASE)
     private val cvUrl = Regex("""^https?://.*?bilibili.*?cv([0-9]+).*?$""", RegexOption.IGNORE_CASE)
     private val liveUrl = Regex("""^https?://live\.bilibili.*?/([0-9]+).*?$""", RegexOption.IGNORE_CASE)
+    private val dynamicUrl = Regex("""^https?://t\.bilibili\.com/([0-9]+).*?$""", RegexOption.IGNORE_CASE)
+    private val opusUrl = Regex("""^https?://(www\.)?bilibili\.com/opus/([0-9]+).*?$""", RegexOption.IGNORE_CASE)
+    private val dynamicBare = Regex("""^([0-9]{15,20})$""")
     private val b23Url = Regex("""^https?://b23\.tv/([0-9A-Za-z]+).*?$""", RegexOption.IGNORE_CASE)
 
     fun parse(rawInput: String): BiliInput? = parseShortLinkCode(rawInput)?.let { null }
@@ -47,5 +52,8 @@ object BiliInputParser {
             ?: cvBare.matchEntire(input)?.let { BiliInput(BiliContentKind.CV, it.groupValues[1]) }
             ?: cvUrl.matchEntire(input)?.let { BiliInput(BiliContentKind.CV, it.groupValues[1]) }
             ?: liveUrl.matchEntire(input)?.let { BiliInput(BiliContentKind.LIVE, it.groupValues[1]) }
+            ?: dynamicUrl.matchEntire(input)?.let { BiliInput(BiliContentKind.DYNAMIC, it.groupValues[1]) }
+            ?: opusUrl.matchEntire(input)?.let { BiliInput(BiliContentKind.DYNAMIC, it.groupValues[2]) }
+            ?: dynamicBare.matchEntire(input)?.let { BiliInput(BiliContentKind.DYNAMIC, it.groupValues[1]) }
     }
 }
