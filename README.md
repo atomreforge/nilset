@@ -172,8 +172,9 @@ theme:
 
 ## 项目状态
 
-- 当前基线为 v0.1.5。
+- 当前基线为 v0.2.0。
 - Phase 0-6 已完成：架构分层、ViewModel、会话持久化、指令系统、Compose、Hilt、令牌自动刷新、文件日志、CI 和核心会话测试。
+- v0.2.0 对齐服务端 v0.7.1/v0.7.2：补齐健康检查 401 状态、公共用户信息、私有课表 GET、私有课程信息 `roaming` 同步、重装后远端恢复和离线覆盖语义。
 - Phase 7 计划完善发布工程化，包括 R8、签名、崩溃上报和 baseline profile。
 
 架构设计与阶段规划见 [ARCHITECTURE.md](ARCHITECTURE.md)。
