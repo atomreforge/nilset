@@ -185,15 +185,15 @@ private fun BiliQualitySelector(
                     val isSelected = quality == selected
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (quality.code !in availableCodes) themeContainerColor().copy(alpha = 0.5f) else if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
                         border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else themeContainerBorderColor()),
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = quality.code in availableCodes) { onSelect(quality) },
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { onSelect(quality) },
                     ) {
                         Text(
                             quality.label,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (quality.code !in availableCodes) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         )
                     }

@@ -77,8 +77,8 @@ class BiliDownloadEngine(
                 val vj = scope.launch { chunkDownloader.downloadToFile(req.preResolvedVideoUrl, vp, vp.length(), req.preResolvedVideoLength, onProgress = { vd = it; val n = System.currentTimeMillis(); if (n - last > 500) { scope.launch { progress(taskId, vd, req.preResolvedVideoLength, 0, -1) }; last = n } }) }
                 val aj = req.preResolvedAudioUrl?.let { url -> scope.launch { chunkDownloader.downloadToFile(url, ap, ap.length(), req.preResolvedAudioLength, onProgress = { }) } }
                 vj.join(); aj?.join()
-                updateTaskState(taskId, BiliTaskState.MERGING)
-                return
+                updateTaskState(taskId, BiliTaskState.COMPLETED)
+
             }
             updateTaskState(taskId, BiliTaskState.RESOLVING)
             val info = apiService.resolveVideo(req.reference.bvid)
