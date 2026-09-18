@@ -2,6 +2,7 @@ package net.atomreforge.nilset.ui.bili
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,12 +23,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,12 +46,33 @@ fun BiliNilScreen(
     viewModel: BiliNilViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        BiliNilTabRow(
+            selectedIndex = selectedTab,
+            onTabSelected = { selectedTab = it },
+        )
+
+        when (selectedTab) {
+            0 -> BiliCoverContent(state = state, viewModel = viewModel)
+            else -> BiliVideoContent()
+        }
+    }
+}
+
+@Composable
+private fun BiliCoverContent(
+    state: BiliNilUiState,
+    viewModel: BiliNilViewModel,
+) {
+    Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         OutlinedTextField(
@@ -149,6 +175,72 @@ fun BiliNilScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BiliVideoContent() {
+    BiliNilCard {
+        Text(
+            text = stringResource(R.string.bili_nil_video_placeholder),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun BiliNilTabRow(
+    selectedIndex: Int,
+    onTabSelected: (Int) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = themeContainerColor(),
+        border = BorderStroke(1.dp, themeContainerBorderColor()),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            BiliNilTabItem(
+                label = stringResource(R.string.bili_nil_tab_cover),
+                isSelected = selectedIndex == 0,
+                modifier = Modifier.weight(1f),
+                onClick = { onTabSelected(0) },
+            )
+            BiliNilTabItem(
+                label = stringResource(R.string.bili_nil_tab_video),
+                isSelected = selectedIndex == 1,
+                modifier = Modifier.weight(1f),
+                onClick = { onTabSelected(1) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BiliNilTabItem(
+    label: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 
