@@ -9,7 +9,7 @@ import net.atomreforge.nilset.bili.api.BiliLogger
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.RandomAccessFile
+import java.io.FileOutputStream
 import kotlin.random.Random
 
 class BiliChunkDownloader(
@@ -24,27 +24,17 @@ class BiliChunkDownloader(
         onProgress: (Long) -> Unit,
         alternateUrl: String? = null,
     ): Long = withContext(Dispatchers.IO) {
-        var lastUrl = url
         var attempts = 0
         while (attempts <= MAX_RETRIES) {
             try {
-                return@withContext attemptSinglePass(lastUrl, destination, alreadyDownloaded, onProgress)
-            } catch (e: BiliApiException) {
-                if (e.code == 403 && alternateUrl != null && lastUrl != alternateUrl) {
-                    BiliLogger.w(TAG, "403 on primary, switching to alternate URL")
-                    lastUrl = alternateUrl
-                    continue
-                }
-                if (e.code == 403) throw LinkExpiredException(lastUrl, e)
-                attempts++
-                if (attempts > MAX_RETRIES) throw e
-                delay(BASE_BACKOFF_MS * (1L shl attempts) + Random.nextLong(JITTER_MIN_MS, JITTER_MAX_MS))
+                return@withContext attemptSinglePass(url, destination, alreadyDownloaded, onProgress)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 attempts++
+                logFailure(url, e, attempts)
                 if (attempts > MAX_RETRIES) throw e
-                delay(BASE_BACKOFF_MS * (1L shl attempts))
+                delay(BASE_BACKOFF_MS * (1L shl attempts) + Random.nextLong(JITTER_MIN_MS, JITTER_MAX_MS))
             }
         }
         throw BiliApiException(-1, "Download failed after $MAX_RETRIES retries")
@@ -57,20 +47,22 @@ class BiliChunkDownloader(
         onProgress: (Long) -> Unit,
     ): Long {
         destination.parentFile?.mkdirs()
-        destination.createNewFile()
-        val rangeHeader = if (alreadyDownloaded > 0) "bytes=$alreadyDownloaded-" else null
+        BiliLogger.d(TAG, "Download starting: offset=$alreadyDownloaded dest=${destination.name}")
         val builder = Request.Builder().url(url)
-        if (rangeHeader != null) builder.header("Range", rangeHeader)
+        if (alreadyDownloaded > 0) builder.header("Range", "bytes=$alreadyDownloaded-")
         val request = builder.build()
         client.newCall(request).execute().use { response ->
-            if (response.code == 403) throw BiliApiException(403, "CDN returned 403")
-            if (!response.isSuccessful && response.code != 206) {
-                throw BiliApiException(response.code, "Download failed: ${response.code}")
+            val code = response.code
+            BiliLogger.d(TAG, "Response: code=$code message=${response.message}")
+            if (code == 403) throw BiliApiException(403, "CDN returned 403")
+            if (!response.isSuccessful && code != 206) {
+                val bodySnippet = response.body?.string()?.take(200) ?: "(no body)"
+                throw BiliApiException(code, "HTTP $code body=${bodySnippet}")
             }
             val body = response.body ?: throw BiliApiException(-1, "Empty download body")
             var downloaded = alreadyDownloaded
-            RandomAccessFile(destination, "rw").use { output ->
-                output.seek(alreadyDownloaded)
+            FileOutputStream(destination, alreadyDownloaded > 0).use { output ->
+                if (alreadyDownloaded > 0) output.channel.position(alreadyDownloaded)
                 val buffer = ByteArray(CHUNK_SIZE)
                 while (true) {
                     if (Thread.currentThread().isInterrupted) throw CancellationException("Interrupted")
@@ -81,8 +73,14 @@ class BiliChunkDownloader(
                     onProgress(downloaded)
                 }
             }
+            BiliLogger.d(TAG, "Download complete: $downloaded bytes")
             return downloaded
         }
+    }
+
+    private fun logFailure(url: String, e: Exception, attempt: Int) {
+        val maskedUrl = url.substringBefore("?") + "?" + (url.substringAfter("?").take(30)) + "..."
+        BiliLogger.e(TAG, "Download attempt $attempt failed: ${e.javaClass.simpleName} ${e.message} url=$maskedUrl", e)
     }
 
     companion object {

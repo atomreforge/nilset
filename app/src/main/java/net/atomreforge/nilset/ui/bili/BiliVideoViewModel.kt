@@ -39,6 +39,8 @@ class BiliVideoEngineProvider @Inject constructor(
 
     @Synchronized private fun init() {
         if (engine != null) return
+        net.atomreforge.nilset.bili.api.BiliLogger.isEnabled = true
+        if (engine != null) return
         val factory = BiliHttpClientFactory.create(context)
         val client = factory.create()
         val signer = BiliWbiSigner(client)
@@ -108,7 +110,7 @@ class BiliVideoViewModel @Inject constructor(
                 val selector = BiliStreamSelector()
                 val audioP = listOf(BiliAudioQuality.A_192K, BiliAudioQuality.A_132K, BiliAudioQuality.A_64K)
                 val play = s.cachedPlayUrl ?: throw IllegalStateException("PlayUrl not cached")
-                val qualityP = listOf(s.selectedQuality, BiliQuality.Q_720P, BiliQuality.Q_480P, BiliQuality.Q_360P)
+                val qualityP = listOf(s.selectedQuality, BiliQuality.Q_1080P, BiliQuality.Q_720P, BiliQuality.Q_480P, BiliQuality.Q_360P)
                 val sel = selector.select(play.dash!!, qualityP, audioP, true)
                 val req = BiliDownloadRequest(
                     reference = BiliVideoReference(bvid = bvid),

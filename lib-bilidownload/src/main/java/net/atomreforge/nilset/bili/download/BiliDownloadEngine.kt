@@ -115,8 +115,16 @@ class BiliDownloadEngine(
             val aDeferred = audioUrl?.let { url ->
                 scope.async { chunkDownloader.downloadToFile(url, ap, ap.length(), aTotal, onProgress = { }) }
             }
-            vDeferred.await()
-            aDeferred?.await()
+            try {
+                vDeferred.await()
+                aDeferred?.await()
+            } catch (e: LinkExpiredException) {
+                BiliLogger.w(TAG, "Link expired, re-fetching stream and resuming")
+                val freshPlayUrl = apiService.fetchPlayUrl(req.reference.bvid, req.preResolvedCid)
+                val freshDash = freshPlayUrl.dash ?: throw BiliApiException(-1, "No DASH after refresh")
+                val freshSel = streamSelector.select(freshDash, listOf(BiliQuality.Q_1080P, BiliQuality.Q_720P, BiliQuality.Q_480P, BiliQuality.Q_360P), emptyList(), true)
+                chunkDownloader.downloadToFile(freshSel.videoStream.resolvedUrl, vp, vp.length(), -1, onProgress = { })
+            }
 
             updateTaskState(taskId, BiliTaskState.MERGING)
             val mergeResult = merger.merge(vp, if (ap.exists()) ap else null, mp4)
