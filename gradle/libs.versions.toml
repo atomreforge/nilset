@@ -55,6 +55,7 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version = "1.1.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

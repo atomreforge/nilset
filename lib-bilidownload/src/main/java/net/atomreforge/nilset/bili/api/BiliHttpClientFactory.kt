@@ -1,6 +1,5 @@
 package net.atomreforge.nilset.bili.api
 
-import android.content.Context
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -33,9 +32,7 @@ class BiliHttpClientFactory private constructor(
         private const val CONNECT_TIMEOUT_SECONDS = 10L
         private const val READ_TIMEOUT_SECONDS = 30L
 
-        fun create(context: Context): BiliHttpClientFactory {
-            val cookieStore = BiliCookieStore(context.applicationContext)
-            return BiliHttpClientFactory(cookieStore)
-        }
+        fun create(cookieStore: BiliCookieStore): BiliHttpClientFactory =
+            BiliHttpClientFactory(cookieStore)
     }
 }

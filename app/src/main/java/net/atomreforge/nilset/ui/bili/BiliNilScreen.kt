@@ -11,12 +11,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +59,25 @@ fun BiliNilScreen(
     val coverState by coverViewModel.uiState.collectAsStateWithLifecycle()
     val videoState by videoViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showSettings by remember { mutableStateOf(false) }
+    var showBiliLogin by remember { mutableStateOf(false) }
+
+    if (showBiliLogin) {
+        BiliWebLoginScreen(
+            onNavigateBack = { showBiliLogin = false },
+            viewModel = videoViewModel,
+        )
+        return
+    }
+
+    if (showSettings) {
+        BiliNilSettingsScreen(
+            onNavigateBack = { showSettings = false },
+            onOpenBiliLogin = { showBiliLogin = true },
+            viewModel = videoViewModel,
+        )
+        return
+    }
 
     Column(
         modifier = modifier
@@ -62,13 +86,39 @@ fun BiliNilScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BiliNilTabRow(
-            selectedIndex = selectedTab,
-            onTabSelected = { selectedTab = it },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            BiliNilTabRow(
+                selectedIndex = selectedTab,
+                onTabSelected = { selectedTab = it },
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = { showSettings = true },
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings),
+                    contentDescription = stringResource(R.string.settings_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         when (selectedTab) {
             0 -> BiliCoverContent(state = coverState, viewModel = coverViewModel)
-            else -> BiliVideoContent(state = videoState, viewModel = videoViewModel)
+            else -> BiliVideoContent(
+                state = videoState,
+                viewModel = videoViewModel,
+                onOpenCoverDownload = { bvid ->
+                    selectedTab = 0
+                    coverViewModel.updateInput(bvid)
+                    coverViewModel.resolve()
+                },
+            )
         }
     }
 }
@@ -77,8 +127,18 @@ fun BiliNilScreen(
 private fun BiliVideoContent(
     state: BiliVideoUiState,
     viewModel: BiliVideoViewModel,
+    onOpenCoverDownload: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (state.showLoginPrompt) {
+            BiliNilCard {
+                Text(
+                    stringResource(R.string.bili_nil_video_not_logged_in),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
         OutlinedTextField(
             value = state.inputText,
             onValueChange = viewModel::updateInput,
@@ -107,6 +167,24 @@ private fun BiliVideoContent(
             BiliNilCard {
                 Text(info.title ?: "", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Text(info.bvid ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                val coverBitmap = state.coverPreview
+                if (coverBitmap == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.isCoverLoading) {
+                            CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 3.dp)
+                        }
+                    }
+                } else {
+                    CoverImage(bitmap = coverBitmap) {
+                        info.bvid?.let(onOpenCoverDownload)
+                    }
+                }
                 if (state.availableQualities.isNotEmpty()) {
                     Text(stringResource(R.string.bili_nil_video_quality), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     BiliQualitySelector(
@@ -155,7 +233,6 @@ private fun BiliVideoContent(
                         state.downgradeReason?.let { reason ->
                             Text(reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Button(onClick = viewModel::cancelTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_resolve)) }
                     }
                     BiliTaskState.FAILED -> {
                         Text(stringResource(R.string.bili_nil_video_failed), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
@@ -179,13 +256,13 @@ private fun BiliQualitySelector(
     onSelect: (BiliQuality) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        qualities.chunked(4).forEach { row ->
+        qualities.filter { it.code in availableCodes }.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { quality ->
                     val isSelected = quality == selected
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (quality.code !in availableCodes) themeContainerColor().copy(alpha = 0.5f) else if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else themeContainerColor(),
                         border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else themeContainerBorderColor()),
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { onSelect(quality) },
                     ) {
@@ -193,7 +270,7 @@ private fun BiliQualitySelector(
                             quality.label,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (quality.code !in availableCodes) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         )
                     }
@@ -274,9 +351,10 @@ private fun BiliCoverContent(
 private fun BiliNilTabRow(
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         color = themeContainerColor(),
         border = BorderStroke(1.dp, themeContainerBorderColor()),
@@ -336,12 +414,16 @@ private fun BiliNilCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun CoverImage(bitmap: androidx.compose.ui.graphics.ImageBitmap) {
+private fun CoverImage(
+    bitmap: androidx.compose.ui.graphics.ImageBitmap,
+    onClick: (() -> Unit)? = null,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(180.dp)
-            .clip(RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(enabled = onClick != null) { onClick?.invoke() },
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.foundation.Image(

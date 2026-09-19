@@ -130,6 +130,10 @@ Data 层
 - av/BV 使用视频 view 接口，cv 使用专栏 viewinfo 接口，直播间使用表单请求的房间信息接口。
 - BiliNil 的 OkHttp 客户端不接入 Nilset 认证拦截器或动态服务端地址；请求只携带浏览器风格的 UA/Referer。
 - 封面必须来自 HTTPS `hdslb.com` 或其子域；响应先进入 `cacheDir/bili_nil`，预览按尺寸降采样，保存时流式复制到 `Downloads/Nilset`。
+- B站登录模块不创建或管理 WebView；`BiliWebLoginScreen` 负责启用 JavaScript、DOM Storage 和第三方 Cookie，并从 UA 移除 `wv`。导入前调用系统 `CookieManager.flush()`，读取 passport/api/www 三个域，合并去重后交给共享 `BiliCookieStore`。
+- 缺少 `buvid3` 或 `buvid4` 时由 B站指纹接口补齐；登录态通过 nav 接口校验为未登录、普通用户或大会员，状态包含昵称、头像 URL 和 `mid`，不包含 Cookie。
+- `BiliCookieStore` 只接受并只向 `bilibili.com` 及其子域发送 B站 Cookie；媒体 CDN 域名返回空 Cookie。Cookie 持久化使用 `EncryptedSharedPreferences`，旧明文存储会迁移后清除。
+- 登出清空库内加密凭据，并对 B站 WebView 相关 Cookie 过期处理后刷新；错误路径只暴露枚举错误，不记录或包装 Cookie 值。
 
 ### 本地测试账号
 

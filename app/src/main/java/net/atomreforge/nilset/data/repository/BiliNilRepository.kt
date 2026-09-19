@@ -36,6 +36,9 @@ class BiliNilRepository @Inject constructor(
     suspend fun downloadCover(details: BiliCoverDetails): BiliCoverFile =
         remoteDataSource.downloadCover(details.imageUrl, details.input.displayName)
 
+    suspend fun downloadCoverByUrl(rawUrl: String, displayName: String): BiliCoverFile =
+        remoteDataSource.downloadCover(rawUrl, displayName)
+
     suspend fun saveCover(
         details: BiliCoverDetails,
         coverFile: BiliCoverFile,

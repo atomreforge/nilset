@@ -1,62 +1,127 @@
 package net.atomreforge.nilset.bili.api
 
-import android.content.Context
-import android.content.SharedPreferences
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 
-class BiliCookieStore(context: Context) : CookieJar {
-
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class BiliCookieStore(
+    private val persistence: BiliCookiePersistence,
+) : CookieJar {
 
     private val lock = Any()
+    private var cookies: List<BiliStoredCookie> = persistence.load()
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        synchronized(lock) {
-            val all = prefs.all ?: return emptyList()
-            return all.mapNotNull { entry ->
-                    val encoded = entry.key
-                    val raw = entry.value as? String ?: return@mapNotNull null
-                runCatching {
-                    val domain = decoded(encoded).substringBefore(DELIMITER)
-                    if (!url.host.endsWith(domain, ignoreCase = true)) return@mapNotNull null
-                    Cookie.Builder()
-                        .name(decoded(raw).substringBefore("="))
-                        .value(decoded(raw).substringAfter("="))
-                        .domain(domain)
-                        .build()
-                }.getOrNull()
-            }
+        if (!isBiliHost(url.host)) {
+            return emptyList()
+        }
+        return synchronized(lock) {
+            cookies.mapNotNull(::toOkHttpCookie).filter { it.matches(url) }
         }
     }
 
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+    override fun saveFromResponse(url: HttpUrl, responseCookies: List<Cookie>) {
+        if (!isBiliHost(url.host)) {
+            return
+        }
         synchronized(lock) {
-            prefs.edit().apply {
-                for (cookie in cookies) {
-                    val key = encoded(cookie.domain)
-                    val value = encoded("${cookie.name}=${cookie.value}")
-                    putString(key, value)
-                }
-            }.apply()
+            responseCookies.filter { it.domain.isBiliDomain() }.forEach { cookie ->
+                replaceLocked(
+                    BiliStoredCookie(
+                        name = cookie.name,
+                        value = cookie.value,
+                        domain = cookie.domain,
+                        path = cookie.path,
+                        expiresAt = cookie.expiresAt,
+                        secure = cookie.secure,
+                        httpOnly = cookie.httpOnly,
+                        hostOnly = cookie.hostOnly,
+                    ),
+                )
+            }
+            persistLocked()
         }
     }
+
+    fun importCookieValues(values: Map<String, String>) {
+        if (values.isEmpty()) {
+            return
+        }
+        synchronized(lock) {
+            values.forEach { (name, value) ->
+                replaceLocked(
+                    BiliStoredCookie(
+                        name = name,
+                        value = value,
+                        domain = BILI_DOMAIN,
+                        path = "/",
+                        secure = true,
+                    ),
+                )
+            }
+            persistLocked()
+        }
+    }
+
+    fun hasCookie(name: String): Boolean = synchronized(lock) {
+        cookies.any { it.name == name }
+    }
+
+    fun hasLoginCookie(): Boolean = hasCookie(LOGIN_COOKIE_NAME)
 
     fun clear() {
-        synchronized(lock) { prefs.edit().clear().apply() }
+        synchronized(lock) {
+            cookies = emptyList()
+            persistence.clear()
+        }
     }
 
-    private fun encoded(raw: String): String =
-        java.util.Base64.getUrlEncoder().encodeToString(raw.toByteArray(Charsets.UTF_8))
+    private fun replaceLocked(cookie: BiliStoredCookie) {
+        val key = cookie.storageKey
+        cookies = cookies.filterNot { it.storageKey == key } + cookie
+    }
 
-    private fun decoded(encoded: String): String =
-        String(java.util.Base64.getUrlDecoder().decode(encoded), Charsets.UTF_8)
+    private fun persistLocked() {
+        persistence.save(cookies)
+    }
+
+    private fun toOkHttpCookie(cookie: BiliStoredCookie): Cookie? {
+        return runCatching {
+            Cookie.Builder()
+                .name(cookie.name)
+                .value(cookie.value)
+                .apply {
+                    if (cookie.hostOnly) {
+                        hostOnlyDomain(cookie.domain)
+                    } else {
+                        domain(cookie.domain)
+                    }
+                }
+                .path(cookie.path)
+                .apply {
+                    if (cookie.secure) secure()
+                    if (cookie.httpOnly) httpOnly()
+                    if (cookie.expiresAt > 0L) expiresAt(cookie.expiresAt)
+                }
+                .build()
+        }.getOrNull()
+    }
+
+    private val BiliStoredCookie.storageKey: String
+        get() = "${domain.lowercase()}|$path|$name"
+
+    private fun String.isBiliDomain(): Boolean {
+        val normalized = removePrefix(".").lowercase()
+        return normalized == "bilibili.com" || normalized.endsWith(".bilibili.com")
+    }
 
     companion object {
-        private const val PREFS_NAME = "bili_nil_cookies"
-        private const val DELIMITER = "\u0000"
+        private const val BILI_DOMAIN = "bilibili.com"
+        private const val LOGIN_COOKIE_NAME = "SESSDATA"
+
+        fun isBiliHost(host: String): Boolean {
+            val normalized = host.lowercase()
+            return normalized == "bilibili.com" || normalized.endsWith(".bilibili.com")
+        }
     }
 }

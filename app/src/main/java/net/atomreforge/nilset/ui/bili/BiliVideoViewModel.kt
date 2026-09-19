@@ -1,11 +1,13 @@
 package net.atomreforge.nilset.ui.bili
 
 import android.content.Context
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,59 +15,177 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.atomreforge.nilset.bili.api.BiliApiService
+import net.atomreforge.nilset.bili.api.BiliCookieStore
+import net.atomreforge.nilset.bili.api.EncryptedBiliCookiePersistence
 import net.atomreforge.nilset.bili.api.BiliHttpClientFactory
 import net.atomreforge.nilset.bili.api.BiliWbiSigner
 import net.atomreforge.nilset.bili.download.BiliDownloadEngine
 import net.atomreforge.nilset.bili.download.BiliDownloadRequest
 import net.atomreforge.nilset.bili.download.BiliSnapshotStore
 import net.atomreforge.nilset.bili.download.BiliTaskState
+import net.atomreforge.nilset.bili.auth.BiliLoginManager
+import net.atomreforge.nilset.bili.auth.BiliLoginApi
+import net.atomreforge.nilset.bili.auth.BiliLoginLevel
+import net.atomreforge.nilset.bili.auth.BiliLoginState
+import net.atomreforge.nilset.bili.auth.SystemBiliWebCookieStore
 import net.atomreforge.nilset.bili.model.BiliAudioQuality
 import net.atomreforge.nilset.bili.model.BiliQuality
 import net.atomreforge.nilset.bili.model.BiliStreamSelector
 import net.atomreforge.nilset.bili.model.BiliVideoReference
+import net.atomreforge.nilset.const.BiliSettings
+import net.atomreforge.nilset.data.repository.BiliNilRepository
+import net.atomreforge.nilset.di.ApplicationScope
 import java.io.File
+import okhttp3.OkHttpClient
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class BiliVideoEngineProvider @Inject constructor(
     @ApplicationContext private val context: Context,
+    @ApplicationScope private val externalScope: CoroutineScope,
 ) {
     @Volatile private var engine: BiliDownloadEngine? = null
     @Volatile private var apiService: BiliApiService? = null
+    @Volatile private var cookieStore: BiliCookieStore? = null
+    @Volatile private var client: OkHttpClient? = null
+    @Volatile private var loginManager: BiliLoginManager? = null
+    private val settingsPreferences = context.getSharedPreferences(
+        BiliSettings.STORE_NAME,
+        Context.MODE_PRIVATE,
+    )
+    private val _maxConcurrentTasks = MutableStateFlow(
+        settingsPreferences.getInt(
+            BiliSettings.CONCURRENT_TASKS_KEY,
+            BiliSettings.DEFAULT_CONCURRENT_TASKS,
+        ).coerceIn(BiliSettings.MIN_CONCURRENT_TASKS, BiliSettings.MAX_CONCURRENT_TASKS),
+    )
+    val maxConcurrentTasks: StateFlow<Int> = _maxConcurrentTasks.asStateFlow()
 
     fun getEngine(): BiliDownloadEngine { if (engine == null) init(); return engine!! }
     fun getApi(): BiliApiService { if (apiService == null) init(); return apiService!! }
+    fun getLoginManager(): BiliLoginManager {
+        init()
+        return loginManager!!
+    }
+    fun isBiliLoggedIn(): Boolean {
+        init()
+        return cookieStore?.hasLoginCookie() == true
+    }
+
+    fun setMaxConcurrentTasks(value: Int) {
+        val normalized = value.coerceIn(BiliSettings.MIN_CONCURRENT_TASKS, BiliSettings.MAX_CONCURRENT_TASKS)
+        _maxConcurrentTasks.value = normalized
+        settingsPreferences.edit()
+            .putInt(BiliSettings.CONCURRENT_TASKS_KEY, normalized)
+            .apply()
+        init()
+        externalScope.launch { engine?.setMaxConcurrentTasks(normalized) }
+    }
 
     @Synchronized private fun init() {
         if (engine != null) return
         net.atomreforge.nilset.bili.api.BiliLogger.isEnabled = true
         if (engine != null) return
-        val factory = BiliHttpClientFactory.create(context)
-        val client = factory.create()
-        val signer = BiliWbiSigner(client)
-        val api = BiliApiService(client, signer)
+        cookieStore = BiliCookieStore(EncryptedBiliCookiePersistence(context.applicationContext))
+        val factory = BiliHttpClientFactory.create(cookieStore!!)
+        client = factory.create()
+        val signer = BiliWbiSigner(client!!)
+        val api = BiliApiService(client!!, signer)
         val tempDir = File(context.cacheDir, "bili_nil_download")
         val snapshotFile = File(context.filesDir, "bili_dl_snapshots.json")
         apiService = api
         val merger = net.atomreforge.nilset.bili.mux.MediaMuxerMerger()
         val exporter = net.atomreforge.nilset.bili.store.BiliMediaExporter(context)
-        engine = BiliDownloadEngine(client, api, BiliSnapshotStore(snapshotFile), tempDir, merger, exporter)
+        engine = BiliDownloadEngine(
+            client = client!!,
+            apiService = api,
+            snapshotStore = BiliSnapshotStore(snapshotFile),
+            tempDirectory = tempDir,
+            merger = merger,
+            exporter = exporter,
+            maxConcurrentTasks = _maxConcurrentTasks.value,
+        )
+        loginManager = BiliLoginManager(
+            cookieStore = cookieStore!!,
+            loginApi = BiliLoginApi(client!!),
+            webCookieStore = SystemBiliWebCookieStore(),
+        )
     }
 }
 
 @HiltViewModel
 class BiliVideoViewModel @Inject constructor(
     private val provider: BiliVideoEngineProvider,
+    private val coverRepository: BiliNilRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(BiliVideoUiState())
     val uiState: StateFlow<BiliVideoUiState> = _uiState.asStateFlow()
+    val maxConcurrentTasks: StateFlow<Int> = provider.maxConcurrentTasks
+    private val _biliAvatar = MutableStateFlow<ImageBitmap?>(null)
+    val biliAvatar: StateFlow<ImageBitmap?> = _biliAvatar.asStateFlow()
     private var observeJob: Job? = null
     private var resolveJob: Job? = null
+    private var coverPreviewJob: Job? = null
+    private var biliAvatarJob: Job? = null
+    private var biliAvatarUrl: String? = null
 
-    init { observeTasks() }
+    init {
+        observeTasks()
+        viewModelScope.launch {
+            provider.getLoginManager().loginState.collect { state ->
+                _uiState.update { current ->
+                    if (state.level == BiliLoginLevel.LOGGED_OUT) {
+                        current.copy(showLoginPrompt = true)
+                    } else {
+                        current.copy(showLoginPrompt = false)
+                    }
+                }
+                updateBiliAvatar(state.avatarUrl)
+            }
+        }
+    }
 
     fun updateInput(value: String) { _uiState.update { it.copy(inputText = value) } }
+
+    fun setMaxConcurrentTasks(value: Int) = provider.setMaxConcurrentTasks(value)
+
+    val biliLoginState: StateFlow<BiliLoginState>
+        get() = provider.getLoginManager().loginState
+
+    fun refreshBiliLoginState() {
+        viewModelScope.launch { provider.getLoginManager().refreshLoginState() }
+    }
+
+    fun importBiliWebViewCookies() {
+        viewModelScope.launch { provider.getLoginManager().importWebViewCookies() }
+    }
+
+    fun logoutFromBili() {
+        viewModelScope.launch { provider.getLoginManager().logout() }
+    }
+
+    private fun updateBiliAvatar(url: String?) {
+        if (url == biliAvatarUrl) {
+            return
+        }
+        biliAvatarUrl = url
+        biliAvatarJob?.cancel()
+        _biliAvatar.value = null
+        if (url == null) {
+            return
+        }
+        biliAvatarJob = viewModelScope.launch {
+            runCatching {
+                val file = coverRepository.downloadCoverByUrl(url, "bili_avatar")
+                BiliCoverImageLoader.decode(file.file, maxDimension = 256)
+            }.getOrNull()?.let { avatar ->
+                if (biliAvatarUrl == url) {
+                    _biliAvatar.value = avatar
+                }
+            }
+        }
+    }
 
     fun selectQuality(q: BiliQuality) {
         if (q.code !in _uiState.value.downloadableQualityCodes) {
@@ -79,7 +199,18 @@ class BiliVideoViewModel @Inject constructor(
         val s = _uiState.value
         if (s.isResolving || s.inputText.isBlank()) return
         resolveJob?.cancel()
-        _uiState.update { it.copy(isResolving = true, errorMessage = null, videoInfo = null, availableQualities = emptyList(), downloadableQualityCodes = emptySet()) }
+        coverPreviewJob?.cancel()
+        _uiState.update {
+            it.copy(
+                isResolving = true,
+                errorMessage = null,
+                videoInfo = null,
+                coverPreview = null,
+                isCoverLoading = false,
+                availableQualities = emptyList(),
+                downloadableQualityCodes = emptySet(),
+            )
+        }
         resolveJob = viewModelScope.launch {
             try {
                 val bvid = resolveInput(s.inputText)
@@ -89,13 +220,30 @@ class BiliVideoViewModel @Inject constructor(
                 val play = api.fetchPlayUrl(bvid, cid)
                 val qs = play.accept_quality.map { BiliQuality.fromCode(it) }.filter { it != BiliQuality.UNKNOWN }
                 val downloadable = play.dash?.video?.map { it.id }?.toSet() ?: emptySet()
+                val highestQuality = qs.filter { it.code in downloadable }.maxByOrNull { it.code } ?: BiliQuality.Q_360P
                 _uiState.update {
                     it.copy(
                         isResolving = false, videoInfo = info,
                         availableQualities = qs, downloadableQualityCodes = downloadable,
                         resolvedCid = cid, resolvedTitle = info.title ?: "",
                         cachedPlayUrl = play,
+                        selectedQuality = highestQuality,
                     )
+                }
+                info.pic?.let { coverUrl ->
+                    coverPreviewJob = viewModelScope.launch {
+                        try {
+                            val preview = runCatching {
+                                val coverFile = coverRepository.downloadCoverByUrl(coverUrl, bvid)
+                                BiliCoverImageLoader.decode(coverFile.file)
+                            }.getOrNull()
+                            if (preview != null && _uiState.value.videoInfo?.bvid == info.bvid) {
+                                _uiState.update { it.copy(coverPreview = preview) }
+                            }
+                        } finally {
+                            _uiState.update { it.copy(isCoverLoading = false) }
+                        }
+                    }
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _uiState.update { it.copy(isResolving = false, errorMessage = e.message) } }

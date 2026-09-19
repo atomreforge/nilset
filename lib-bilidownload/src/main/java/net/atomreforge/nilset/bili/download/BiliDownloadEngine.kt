@@ -40,8 +40,14 @@ class BiliDownloadEngine(
     private val scope = externalScope ?: CoroutineScope(SupervisorJob())
     private val chunkDownloader = BiliChunkDownloader(client)
     private val streamSelector = BiliStreamSelector()
-    private val semaphore = Semaphore(maxConcurrentTasks)
     private val tasksMutex = Mutex()
+    private val concurrencyMutex = Mutex()
+    private var currentMaxConcurrentTasks = maxConcurrentTasks.coerceIn(MIN_CONCURRENT_TASKS, MAX_CONCURRENT_TASKS)
+    private val semaphore = Semaphore(MAX_CONCURRENT_TASKS).apply {
+        repeat(MAX_CONCURRENT_TASKS - currentMaxConcurrentTasks) {
+            check(tryAcquire())
+        }
+    }
     private val _tasks = MutableStateFlow<List<BiliDownloadTask>>(emptyList())
     val tasks: StateFlow<List<BiliDownloadTask>> = _tasks.asStateFlow()
     private val activeJobs = ConcurrentHashMap<String, Job>()
@@ -52,6 +58,21 @@ class BiliDownloadEngine(
         addTask(task)
         launchTask(taskId)
         return taskId
+    }
+
+    suspend fun setMaxConcurrentTasks(value: Int): Int {
+        val target = value.coerceIn(MIN_CONCURRENT_TASKS, MAX_CONCURRENT_TASKS)
+        concurrencyMutex.withLock {
+            val current = currentMaxConcurrentTasks
+            if (target == current) return target
+            if (target > current) {
+                repeat(target - current) { semaphore.release() }
+            } else {
+                repeat(current - target) { semaphore.acquire() }
+            }
+            currentMaxConcurrentTasks = target
+        }
+        return target
     }
 
     fun pause(taskId: String) { activeJobs[taskId]?.cancel(); scope.launch { updateTaskState(taskId, BiliTaskState.PAUSED) } }
@@ -165,6 +186,8 @@ class BiliDownloadEngine(
     companion object {
         private const val TAG = "BiliDownloadEngine"
         const val DEFAULT_CONCURRENT_TASKS = 1
+        const val MIN_CONCURRENT_TASKS = 1
+        const val MAX_CONCURRENT_TASKS = 4
         private val ACTIVE_STATES = setOf(BiliTaskState.QUEUED, BiliTaskState.RESOLVING, BiliTaskState.DOWNLOADING, BiliTaskState.MERGING)
     }
 }

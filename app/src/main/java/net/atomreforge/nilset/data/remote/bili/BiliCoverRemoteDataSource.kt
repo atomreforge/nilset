@@ -77,8 +77,8 @@ class BiliCoverRemoteDataSource @Inject constructor(
         rawUrl: String,
         displayName: String,
     ): BiliCoverFile = withContext(Dispatchers.IO) {
-        val url = rawUrl.toHttpUrlOrNull()
-        if (url == null || normalizeImageUrl(rawUrl) == null) {
+        val url = normalizeImageUrl(rawUrl)?.toHttpUrlOrNull()
+        if (url == null) {
             throw BiliCoverException(BiliExpressions.GENERIC_UPSTREAM_CODE, "Cover URL is not allowed")
         }
 
