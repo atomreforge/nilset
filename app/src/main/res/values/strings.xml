@@ -44,6 +44,8 @@
     <string name="bili_nil_login_vip_member">大会员</string>
     <string name="bili_nil_login_checking">校验中…</string>
     <string name="bili_nil_login_logout">退出登录</string>
+    <string name="bili_nil_login_logout_confirm_message">确定要退出 B 站登录吗？</string>
+    <string name="bili_nil_cancel">取消</string>
     <string name="bili_nil_concurrent_tasks">同时下载任务数</string>
     <string name="bili_nil_concurrent_tasks_value">%1$d 个</string>
     <string name="bili_nil_video_input_label">BV / AV 链接</string>

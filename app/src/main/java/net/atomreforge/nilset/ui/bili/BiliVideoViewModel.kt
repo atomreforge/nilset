@@ -157,9 +157,8 @@ class BiliVideoViewModel @Inject constructor(
         viewModelScope.launch { provider.getLoginManager().refreshLoginState() }
     }
 
-    fun importBiliWebViewCookies() {
-        viewModelScope.launch { provider.getLoginManager().importWebViewCookies() }
-    }
+    suspend fun importBiliWebViewCookies(): Boolean =
+        provider.getLoginManager().importWebViewCookies().success
 
     fun logoutFromBili() {
         viewModelScope.launch { provider.getLoginManager().logout() }

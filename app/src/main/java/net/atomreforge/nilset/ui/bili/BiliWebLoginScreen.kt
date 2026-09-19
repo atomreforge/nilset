@@ -1,25 +1,19 @@
 package net.atomreforge.nilset.ui.bili
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.Image
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -38,9 +32,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import net.atomreforge.nilset.R
-import net.atomreforge.nilset.bili.auth.BiliLoginLevel
-import net.atomreforge.nilset.ui.theme.themeContainerBorderColor
-import net.atomreforge.nilset.ui.theme.themeContainerColor
 
 private const val BILI_LOGIN_URL = "https://passport.bilibili.com/login"
 
@@ -50,9 +41,9 @@ fun BiliWebLoginScreen(
     viewModel: BiliVideoViewModel = hiltViewModel(),
 ) {
     val loginState by viewModel.biliLoginState.collectAsStateWithLifecycle()
-    val avatar by viewModel.biliAvatar.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     var isClosingWithImport by remember { mutableStateOf(false) }
+    var isCheckingLogin by remember { mutableStateOf(false) }
 
     fun closeWithImport() {
         if (isClosingWithImport) {
@@ -65,75 +56,54 @@ fun BiliWebLoginScreen(
         }
     }
 
+    fun checkLoginAndExit() {
+        if (isCheckingLogin || isClosingWithImport) {
+            return
+        }
+        isCheckingLogin = true
+        coroutineScope.launch {
+            val success = viewModel.importBiliWebViewCookies()
+            if (success) {
+                isClosingWithImport = true
+                onNavigateBack()
+            } else {
+                isCheckingLogin = false
+            }
+        }
+    }
+
     BackHandler {
         closeWithImport()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            IconButton(
-                onClick = ::closeWithImport,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_back),
-                    contentDescription = stringResource(R.string.back),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Text(
-                text = stringResource(R.string.bili_nil_login_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            if (loginState.isValidating) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            }
-        }
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            border = BorderStroke(1.dp, themeContainerBorderColor()),
-            color = themeContainerColor(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = when (loginState.level) {
-                        BiliLoginLevel.LOGGED_OUT -> stringResource(R.string.bili_nil_login_logged_out)
-                        BiliLoginLevel.NORMAL_USER -> stringResource(R.string.bili_nil_login_normal_user)
-                        BiliLoginLevel.VIP_MEMBER -> stringResource(R.string.bili_nil_login_vip_member)
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                loginState.nickname?.let { nickname ->
-                    Text(
-                        text = nickname,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                if (avatar != null) {
-                    BiliAvatarImage(avatar = avatar!!)
-                }
-            }
-        }
+    Box(modifier = Modifier.fillMaxSize()) {
         BiliLoginWebView(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
+            onLoginCandidate = ::checkLoginAndExit,
         )
+        IconButton(
+            onClick = ::closeWithImport,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp, top = 12.dp)
+                .size(32.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_back),
+                contentDescription = stringResource(R.string.back),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        if (loginState.isValidating) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 12.dp, top = 12.dp)
+                    .size(20.dp),
+                strokeWidth = 2.dp,
+            )
+        }
     }
 }
 
@@ -141,6 +111,7 @@ fun BiliWebLoginScreen(
 @Composable
 private fun BiliLoginWebView(
     modifier: Modifier = Modifier,
+    onLoginCandidate: () -> Unit,
 ) {
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
 
@@ -159,7 +130,19 @@ private fun BiliLoginWebView(
             webView.settings.allowFileAccess = false
             webView.settings.allowContentAccess = false
             webView.settings.userAgentString = webView.settings.userAgentString.replace("; wv", "")
-            webView.webViewClient = WebViewClient()
+            webView.webViewClient = object : WebViewClient() {
+                override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+                    if (!url.isNullOrBlank() && !isBiliLoginPage(url)) {
+                        onLoginCandidate()
+                    }
+                }
+
+                override fun onPageFinished(view: WebView, url: String?) {
+                    if (!url.isNullOrBlank() && !isBiliLoginPage(url)) {
+                        onLoginCandidate()
+                    }
+                }
+            }
             webView.webChromeClient = WebChromeClient()
             val cookieManager = android.webkit.CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
@@ -171,13 +154,7 @@ private fun BiliLoginWebView(
     )
 }
 
-@Composable
-private fun BiliAvatarImage(avatar: androidx.compose.ui.graphics.ImageBitmap) {
-    Image(
-        bitmap = avatar,
-        contentDescription = null,
-        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-        modifier = Modifier
-            .size(44.dp),
-    )
+private fun isBiliLoginPage(url: String): Boolean {
+    val uri = Uri.parse(url)
+    return uri.host == "passport.bilibili.com" && uri.path?.startsWith("/login") == true
 }
