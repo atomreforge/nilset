@@ -146,7 +146,11 @@ class BiliDownloadEngine(
                 )
             }
         } catch (e: CancellationException) { updateTaskState(taskId, BiliTaskState.PAUSED) }
-        catch (e: Exception) { BiliLogger.e(TAG, "Task $taskId failed", e); updateTask(taskId) { it.copy(state = BiliTaskState.FAILED, errorMessage = e.message, retryable = true) } }
+        catch (e: Exception) {
+            val msg = e.javaClass.simpleName + ": " + e.message
+            BiliLogger.e(TAG, "Task FAILED: $msg", e)
+            updateTask(taskId) { it.copy(state = BiliTaskState.FAILED, errorMessage = msg, retryable = true) }
+        }
     }
 
     private suspend fun progress(taskId: String, vd: Long, vt: Long, ad: Long, at: Long) {
