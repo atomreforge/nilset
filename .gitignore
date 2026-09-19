@@ -13,3 +13,8 @@
 
 app/src/debug/assets/config.yaml
 app/src/debug/assets/test-account.yaml
+
+/keystore.properties
+/keystores/
+*.jks
+*.keystore

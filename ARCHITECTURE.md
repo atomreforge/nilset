@@ -200,6 +200,8 @@ app/src/main/java/net/atomreforge/nilset/
 - 测试覆盖仍不完整：会话刷新、服务连接、课表仓库/视图模型、主题模型和指令配置补全已有测试，Compose UI 测试不足。
 - release 优化未开启：R8/资源压缩尚未启用。
 - debug 指令是运行时门控：release 中不可见、不可执行，但代码并未从包内物理移除。
+- release 签名优先读取 `keystore.properties` 或环境变量；配置缺失时回退 debug 签名，仅用于内部 pre-release。
+- GitHub tag release workflow 会构建 APK 并创建 GitHub Pre-release；签名 secrets 缺失时保持 debug 回退。
 
 ## 7. 质量与发布路线
 

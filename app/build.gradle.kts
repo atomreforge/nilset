@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,27 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+val releaseSigningProperties = Properties()
+val releaseSigningPropertiesFile = rootProject.file("keystore.properties")
+if (releaseSigningPropertiesFile.exists()) {
+    releaseSigningPropertiesFile.inputStream().use { stream ->
+        releaseSigningProperties.load(stream)
+    }
+}
+
+fun releaseSigningValue(name: String): String? =
+    System.getenv(name)?.takeIf { it.isNotBlank() }
+        ?: releaseSigningProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFilePath = releaseSigningValue("NILSET_RELEASE_STORE_FILE")
+val releaseStorePassword = releaseSigningValue("NILSET_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = releaseSigningValue("NILSET_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningValue("NILSET_RELEASE_KEY_PASSWORD")
+val isReleaseSigningConfigured = releaseStoreFilePath != null &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
 
 android {
     namespace = "net.atomreforge.nilset"
@@ -16,16 +39,42 @@ android {
         applicationId = "net.atomreforge.nilset"
         minSdk = 29
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.3.0-pre.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (isReleaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = if (isReleaseSigningConfigured) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             optimization {
                 enable = false
+            }
+        }
+    }
+    signingConfigs {
+        if (isReleaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }

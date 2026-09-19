@@ -1,0 +1,73 @@
+name: Android Pre-release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Gradle daemon JVM
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
+
+      - name: Decode release keystore
+        env:
+          NILSET_RELEASE_KEYSTORE_BASE64: ${{ secrets.NILSET_RELEASE_KEYSTORE_BASE64 }}
+          NILSET_RELEASE_STORE_FILE: keystores/nilset-release.jks
+        run: |
+          if [ -n "$NILSET_RELEASE_KEYSTORE_BASE64" ]; then
+            mkdir -p keystores
+            printf '%s' "$NILSET_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$NILSET_RELEASE_STORE_FILE"
+          fi
+
+      - name: Run tests, lint, and release build
+        env:
+          NILSET_RELEASE_STORE_FILE: keystores/nilset-release.jks
+          NILSET_RELEASE_STORE_PASSWORD: ${{ secrets.NILSET_RELEASE_STORE_PASSWORD }}
+          NILSET_RELEASE_KEY_ALIAS: ${{ secrets.NILSET_RELEASE_KEY_ALIAS }}
+          NILSET_RELEASE_KEY_PASSWORD: ${{ secrets.NILSET_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew clean testDebugUnitTest lintRelease assembleRelease
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: nilset-${{ github.ref_name }}-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@v7
+        with:
+          name: nilset-${{ github.ref_name }}-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
+
+      - name: Create GitHub Pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --prerelease --generate-notes app/build/outputs/apk/release/*.apk

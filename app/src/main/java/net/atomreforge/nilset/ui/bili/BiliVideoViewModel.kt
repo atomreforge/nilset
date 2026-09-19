@@ -28,6 +28,7 @@ import net.atomreforge.nilset.bili.auth.BiliLoginApi
 import net.atomreforge.nilset.bili.auth.BiliLoginLevel
 import net.atomreforge.nilset.bili.auth.BiliLoginState
 import net.atomreforge.nilset.bili.auth.SystemBiliWebCookieStore
+import net.atomreforge.nilset.BuildConfig
 import net.atomreforge.nilset.bili.model.BiliAudioQuality
 import net.atomreforge.nilset.bili.model.BiliQuality
 import net.atomreforge.nilset.bili.model.BiliStreamSelector
@@ -85,7 +86,7 @@ class BiliVideoEngineProvider @Inject constructor(
 
     @Synchronized private fun init() {
         if (engine != null) return
-        net.atomreforge.nilset.bili.api.BiliLogger.isEnabled = true
+        net.atomreforge.nilset.bili.api.BiliLogger.isEnabled = BuildConfig.DEBUG
         if (engine != null) return
         cookieStore = BiliCookieStore(EncryptedBiliCookiePersistence(context.applicationContext))
         val factory = BiliHttpClientFactory.create(cookieStore!!)
