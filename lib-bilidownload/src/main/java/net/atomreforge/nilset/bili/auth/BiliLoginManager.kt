@@ -59,11 +59,20 @@ class BiliLoginManager(
 
     override suspend fun logout() = operationMutex.withLock {
         cookieStore.clear()
+        val webCookieNames = mutableSetOf<String>()
         (WEB_COOKIE_URLS + WEB_LOGOUT_URLS).forEach { url ->
             webCookieStore.readCookie(url)
                 ?.let(::parseCookieString)
                 ?.keys
-                ?.forEach { name -> webCookieStore.expireCookie(url, name) }
+                ?.forEach(webCookieNames::add)
+        }
+        webCookieNames.forEach { name ->
+            WEB_COOKIE_URLS.forEach { url ->
+                webCookieStore.expireCookie(url, name)
+            }
+            WEB_LOGOUT_URLS.forEach { url ->
+                webCookieStore.expireCookie(url, name, WEB_COOKIE_DOMAIN)
+            }
         }
         webCookieStore.flush()
         _loginState.value = BiliLoginState()
@@ -143,5 +152,6 @@ class BiliLoginManager(
         private val WEB_LOGOUT_URLS = listOf(
             "https://bilibili.com/",
         )
+        private const val WEB_COOKIE_DOMAIN = ".bilibili.com"
     }
 }

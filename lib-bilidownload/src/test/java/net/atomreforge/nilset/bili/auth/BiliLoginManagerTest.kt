@@ -37,6 +37,7 @@ private class FakeBiliLoginApi : BiliLoginApiService {
 private class FakeWebCookieStore : BiliWebCookieStore {
     private val cookies = mutableMapOf<String, String>()
     val expiredNames = mutableSetOf<String>()
+    val expiredDomainCookies = mutableListOf<Pair<String, String?>>()
     var flushed = 0
 
     fun put(url: String, cookie: String) {
@@ -49,8 +50,9 @@ private class FakeWebCookieStore : BiliWebCookieStore {
 
     override fun readCookie(url: String): String? = cookies[url]
 
-    override fun expireCookie(url: String, name: String) {
+    override fun expireCookie(url: String, name: String, domain: String?) {
         expiredNames += name
+        expiredDomainCookies += name to domain
         cookies.remove(url)
     }
 }
@@ -134,5 +136,15 @@ class BiliLoginManagerTest {
         assertFalse(store.hasLoginCookie())
         assertTrue(webStore.expiredNames.contains("SESSDATA"))
         assertTrue(webStore.expiredNames.contains("bili_jct"))
+        assertTrue(
+            webStore.expiredDomainCookies.contains(
+                "SESSDATA" to ".bilibili.com",
+            ),
+        )
+        assertTrue(
+            webStore.expiredDomainCookies.contains(
+                "bili_jct" to ".bilibili.com",
+            ),
+        )
     }
 }

@@ -12,10 +12,11 @@ class SystemBiliWebCookieStore : BiliWebCookieStore {
         return CookieManager.getInstance().getCookie(url)
     }
 
-    override fun expireCookie(url: String, name: String) {
+    override fun expireCookie(url: String, name: String, domain: String?) {
+        val domainAttribute = domain?.let { "; Domain=$it" }.orEmpty()
         CookieManager.getInstance().setCookie(
             url,
-            "$name=; Max-Age=0; Path=/",
+            "$name=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT$domainAttribute; Path=/",
         )
     }
 }

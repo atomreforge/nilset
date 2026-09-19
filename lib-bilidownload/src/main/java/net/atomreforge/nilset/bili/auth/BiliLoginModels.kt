@@ -33,7 +33,7 @@ data class BiliLoginResult(
 interface BiliWebCookieStore {
     fun flush()
     fun readCookie(url: String): String?
-    fun expireCookie(url: String, name: String)
+    fun expireCookie(url: String, name: String, domain: String? = null)
 }
 
 interface BiliLoginApiService {
