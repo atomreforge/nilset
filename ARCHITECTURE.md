@@ -134,6 +134,9 @@ Data 层
 - 缺少 `buvid3` 或 `buvid4` 时由 B站指纹接口补齐；登录态通过 nav 接口校验为未登录、普通用户或大会员，状态包含昵称、头像 URL 和 `mid`，不包含 Cookie。
 - `BiliCookieStore` 只接受并只向 `bilibili.com` 及其子域发送 B站 Cookie；媒体 CDN 域名返回空 Cookie。Cookie 持久化使用 `EncryptedSharedPreferences`，旧明文存储会迁移后清除。
 - 登出清空库内加密凭据，并对 B站 WebView 相关 Cookie 过期处理后刷新；错误路径只暴露枚举错误，不记录或包装 Cookie 值。
+- `lib-bilidownload` 承载 B站 API/WBI、登录 Cookie、任务引擎、分流选择、MediaMuxer 合并和 MediaStore 导出；`app/ui/bili` 只维护页面状态和事件转发。
+- 视频使用 WBI playurl（`fnval=2000`）获取 DASH；UI 只展示当前 DASH 可用的画质。选择器优先 AVC，其次 HEVC，目标画质只有 AV1 时继续尝试更低画质，全部只有 AV1 时保留分离文件。
+- 视频分段先写入 `cacheDir/bili_nil_download`，任务状态写入 JSON 快照；导出通过 MediaStore 进入 `Download/Nilset/Video`，文件名为 `标题{BV号}[画质].mp4`，非法 Windows 文件名字符会被替换。
 
 ### 本地测试账号
 
@@ -184,12 +187,12 @@ app/src/main/java/net/atomreforge/nilset/
 | 持久化 | DataStore Preferences | 保存会话、主题、控制台配置、当前用户本地课表和课表查看偏好，Room 尚未引入 |
 | 网络 | Retrofit + OkHttp + kotlinx.serialization | 连接 Daizy Night 服务端 |
 | 配置 | KAML + 强类型 data class | YAML fail-fast 加载 |
-| 构建 | Gradle Version Catalog + AGP 9 | 单模块工程 |
+| 构建 | Gradle Version Catalog + AGP 9 | `:app` 主工程；`:lib-bilidownload` 承载 BiliNil 下载与登录能力 |
 
 ## 6. 明确边界与已知差距
 
 - 没有独立 Domain 层：当前业务规模较小，UseCase 仍按需后置。
-- 没有多模块拆分：仍保持单 `:app` 模块，功能增多后再拆 feature/core 模块。
+- 只为 BiliNil 网络与下载能力拆出 `:lib-bilidownload`；其他业务仍保留在 `:app`，出现明确复用或隔离收益时再继续拆分。
 - 控制台历史只保存在进程内：应用进程被杀或系统回收后不会恢复。
 - 课表共建页当前用户课表为本地创建和本地持久化；公共单用户课表读取已接入，但成员列表和多人共享 API 尚未提供，客户端成员菜单是只含登录用户的临时占位。
 - 离线课表修改不会进入同步队列；连接恢复或在线修改时按可同步字段（包括老师、课室和备注的 `roaming` 映射）对比并以本地覆盖远端，同步失败则等待下一次触发。
@@ -215,6 +218,7 @@ app/src/main/java/net/atomreforge/nilset/
 - **Phase 5（已完成）**：用 Hilt 替代手动 DI，建立 Hilt/KSP 构建链路。
 - **Phase 6（已完成）**：访问令牌自动刷新、CI 和核心会话链路测试已接入。
 - **v0.2.0（已完成）**：对齐服务端 v0.7.1/v0.7.2，支持健康检查未认证状态、公共用户信息、私有课表 GET、私有课程信息 `roaming` 云同步和未初始化本地课表恢复。
+- **v0.2.2（已完成）**：完成 BiliNil 视频下载管线、WebView Cookie 登录、清晰度策略、并发设置和 Windows 兼容文件名。
 - **Phase 7**：完善发布工程化，包括 R8、签名、崩溃上报和性能优化。
 - **后续产品方向**：课表共享、共同空闲时间计算、随机抽签、分组和其他操作入口模块。
 

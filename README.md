@@ -24,7 +24,9 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 - Markdown 读写仓库支持应用私有 Markdown 文件和 SAF 文档 URI 的文本读取、写入；后续随心记编辑器将复用该链路。
 - 设置页右上角显示服务端连接状态；点击会提示当前状态，应用启动自动探测一次，失败后冷却结束前禁用实际重试、冷却结束后可手动重试。
 - 主页侧边栏提供独立日历月历视图，支持按月切换和今天高亮；当前不与课表数据关联。
-- 主页侧边栏最后一项提供 BiliNil 工具，顶部提供封面下载和视频下载选项卡切换：封面下载支持 av、BV、直播间和 `b23.tv` 输入解析，展示并下载封面到系统 `Downloads/Nilset`。BiliNil 设置页提供 B站登录入口和附属 WebView 登录页；登录态分为未登录、普通用户和大会员，并显示昵称、头像和 `mid`。Cookie 存在应用内加密存储中，仅发送给 `bilibili.com` 及其子域，不会发送到 B站媒体 CDN，也不会写入日志、异常信息或 UI 状态。WebView UI 需开启 JavaScript、DOM Storage 和第三方 Cookie，并建议从 UA 中移除 `wv` 标记；登出只清理 B站相关 WebView Cookie。
+- 主页侧边栏最后一项提供 BiliNil 工具，顶部提供封面下载和视频下载选项卡切换：封面下载支持 av、BV、直播间和 `b23.tv` 输入解析，展示并保存封面到 `Downloads/Nilset/Cover`。
+- 视频下载解析 DASH 流，仅展示当前视频支持的清晰度；请求优先 AVC/HEVC，目标画质只有 AV1 时会自动尝试更低画质，全部只有 AV1 时保持音视频分离并说明原因。下载支持进度、暂停/继续、取消和 1-4 并发任务设置，导出到 `Downloads/Nilset/Video`，文件名为 `标题{BV号}[画质].mp4`。
+- BiliNil 设置页提供 B站登录入口和附属 WebView 登录页；登录态分为未登录、普通用户和大会员，并显示昵称、头像和 `mid`。Cookie 存在应用内加密存储中，仅发送给 `bilibili.com` 及其子域，不会发送到 B站媒体 CDN，也不会写入日志、异常信息或 UI 状态。WebView UI 需开启 JavaScript、DOM Storage 和第三方 Cookie，并建议从 UA 中移除 `wv` 标记；登出会清理库内凭据和 B站相关 WebView Cookie。
 - 课表共建页当前用户的课表以本地 DataStore 为准，创建、编辑和删除先写本地；断开服务端时可离线修改，恢复连接后会对比本地与远端并以本地数据覆盖远端。老师、课室和备注通过私有 `roaming` 云同步，public 课表不会返回这些字段。本地从未初始化时优先采用远端课表，便于重装恢复；本地已初始化的空课表仍会覆盖远端。支持创建和编辑课程（标题、星期、分段时间、老师、课室和备注）、长按课程删除、问候、下一节课提示、星期筛选、课程列表和下拉刷新。查看他人课表时隐藏课程编辑入口并禁用长按操作。成员列表目前仍只显示当前登录用户；服务端已提供公共单用户课表读取，多人聚合和成员列表仍待后续 API。
 - 内部指令带有 debug 门控，避免调试能力进入 release 行为。
 - 单 Activity + Navigation Compose 的页面组织。
@@ -54,7 +56,7 @@ ATOM「空集」（Nilset） 是 ATOM 生态中的 Android 客户端，定位是
 | 依赖注入 | Hilt |
 | 网络 | Retrofit、OkHttp、kotlinx.serialization |
 | 持久化 | DataStore Preferences |
-| 构建 | Gradle Version Catalog、AGP 9、KSP |
+| 构建 | Gradle Version Catalog、AGP 9、KSP；主工程 `:app`，BiliNil 能力在 `:lib-bilidownload` |
 
 ## 目录概览
 
@@ -71,6 +73,13 @@ app/src/main/java/net/atomreforge/nilset/
 │  └─ session/    # DataStore 会话数据源
 ├─ di/            # Hilt 模块
 └─ ui/            # 登录、控制台、日历、课表、主页/设置导航、主题
+lib-bilidownload/src/main/java/net/atomreforge/nilset/bili/
+├─ api/       # B站 HTTP/WBI API 与域名隔离 CookieJar
+├─ auth/      # WebView Cookie 导入、登录态校验与登出
+├─ download/  # 分段下载、任务状态、文件名与导出前处理
+├─ model/     # 视频模型与清晰度/编码选择
+├─ mux/       # MediaMuxer 音视频合并
+└─ store/     # MediaStore 导出
 ```
 
 ## 环境要求
@@ -173,10 +182,11 @@ theme:
 
 ## 项目状态
 
-- 当前基线为 v0.2.1。
+- 当前基线为 v0.2.2。
 - Phase 0-6 已完成：架构分层、ViewModel、会话持久化、指令系统、Compose、Hilt、令牌自动刷新、文件日志、CI 和核心会话测试。
 - v0.2.0 对齐服务端 v0.7.1/v0.7.2：补齐健康检查 401 状态、公共用户信息、私有课表 GET、私有课程信息 `roaming` 同步、重装后远端恢复和离线覆盖语义。
 - v0.2.1 新增 BiliNil 模块：封面下载支持 av、BV、直播间和 `b23.tv` 输入解析，顶部提供封面下载/视频下载选项卡切换。
+- v0.2.2 完善 BiliNil：补齐视频下载管线、B站 WebView Cookie 登录、清晰度选择和 Windows 兼容导出文件名。
 - Phase 7 计划完善发布工程化，包括 R8、签名、崩溃上报和 baseline profile。
 
 架构设计与阶段规划见 [ARCHITECTURE.md](ARCHITECTURE.md)。

@@ -65,27 +65,20 @@ class BiliStreamSelector {
                     ?: candidates.first()
             }
 
-            val isAv1Only = BiliCodecPreference.fromCodecString(preferredCodec.codecs) == BiliCodecPreference.AV1
-            val audio = selectBestAudio(availableAudios, audioPriority)
-
-            return if (isAv1Only) {
-                BiliStreamSelection(
-                    videoStream = preferredCodec,
-                    audioStream = audio,
-                    selectedQuality = targetQuality,
-                    selectedAudioQuality = audio?.let { BiliAudioQuality.fromCode(it.id) },
-                    mergeOutcome = BiliMergeOutcome.SEPARATE,
-                    downgradeReason = "该画质仅有 AV1 编码，无法合并，保持音视频分离",
-                )
-            } else {
-                BiliStreamSelection(
-                    videoStream = preferredCodec,
-                    audioStream = audio,
-                    selectedQuality = targetQuality,
-                    selectedAudioQuality = audio?.let { BiliAudioQuality.fromCode(it.id) },
-                    mergeOutcome = BiliMergeOutcome.MERGED,
-                )
+            if (preferAvc &&
+                BiliCodecPreference.fromCodecString(preferredCodec.codecs) == BiliCodecPreference.AV1
+            ) {
+                continue
             }
+
+            val audio = selectBestAudio(availableAudios, audioPriority)
+            return BiliStreamSelection(
+                videoStream = preferredCodec,
+                audioStream = audio,
+                selectedQuality = targetQuality,
+                selectedAudioQuality = audio?.let { BiliAudioQuality.fromCode(it.id) },
+                mergeOutcome = BiliMergeOutcome.MERGED,
+            )
         }
 
         val fallbackVideo = availableVideos.firstOrNull()
