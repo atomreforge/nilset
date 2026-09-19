@@ -67,7 +67,13 @@ class BiliVideoViewModel @Inject constructor(
 
     fun updateInput(value: String) { _uiState.update { it.copy(inputText = value) } }
 
-    fun selectQuality(q: BiliQuality) { _uiState.update { it.copy(selectedQuality = q) } }
+    fun selectQuality(q: BiliQuality) {
+        if (q.code !in _uiState.value.downloadableQualityCodes) {
+            _uiState.update { it.copy(errorMessage = "该画质需要登录B站账号") }
+            return
+        }
+        _uiState.update { it.copy(selectedQuality = q, errorMessage = null) }
+    }
 
     fun resolve() {
         val s = _uiState.value
@@ -87,7 +93,7 @@ class BiliVideoViewModel @Inject constructor(
                     it.copy(
                         isResolving = false, videoInfo = info,
                         availableQualities = qs, downloadableQualityCodes = downloadable,
-                        resolvedCid = cid,
+                        resolvedCid = cid, resolvedTitle = info.title ?: "",
                         cachedPlayUrl = play,
                     )
                 }
@@ -117,6 +123,8 @@ class BiliVideoViewModel @Inject constructor(
                     qualityPriority = listOf(s.selectedQuality.code, 64, 32, 16),
                     preResolvedCid = s.resolvedCid,
                     preResolvedVideoUrl = sel.videoStream.resolvedUrl,
+                    preResolvedTitle = s.resolvedTitle,
+                    preResolvedQualityLabel = sel.selectedQuality.label,
                     preResolvedAudioUrl = sel.audioStream?.resolvedUrl,
                 )
                 val id = provider.getEngine().enqueue(req)

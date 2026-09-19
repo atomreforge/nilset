@@ -130,7 +130,7 @@ class BiliDownloadEngine(
             val mergeResult = merger.merge(vp, if (ap.exists()) ap else null, mp4)
 
             updateTaskState(taskId, BiliTaskState.EXPORTING)
-            val fileName = "${req.reference.bvid}_${req.preResolvedCid}.mp4"
+            val fileName = "${req.preResolvedTitle}+${req.reference.bvid}+${req.preResolvedQualityLabel}.mp4"
             val uri = exporter.exportVideo(mp4, fileName)
 
             vp.delete()

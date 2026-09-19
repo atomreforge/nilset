@@ -24,20 +24,20 @@ class BiliMediaExporter(private val context: Context) {
 
     private fun exportViaMediaStore(sourceFile: File, displayName: String): Uri? {
         val resolver = context.contentResolver
-        val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
         val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Nilset/Video")
-            put(MediaStore.Video.Media.IS_PENDING, 1)
+            put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/Nilset/Video")
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
-        val uri = resolver.insert(collection, values) ?: return null
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
         try {
             resolver.openOutputStream(uri)?.use { output ->
                 sourceFile.inputStream().use { input -> input.copyTo(output) }
             } ?: return null
             values.clear()
-            values.put(MediaStore.Video.Media.IS_PENDING, 0)
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0)
             resolver.update(uri, values, null, null)
             return uri
         } catch (e: Exception) {

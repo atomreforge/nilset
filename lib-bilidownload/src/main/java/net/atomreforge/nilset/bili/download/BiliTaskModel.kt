@@ -25,6 +25,8 @@ data class BiliDownloadRequest(
     val preferAvc: Boolean = true,
     val filenameTemplate: String = "{bvid}_p{page}_{quality}",
     val preResolvedCid: Long = 0,
+    val preResolvedTitle: String = "",
+    val preResolvedQualityLabel: String = "",
     val preResolvedVideoUrl: String? = null,
     val preResolvedAudioUrl: String? = null,
     val preResolvedVideoLength: Long = -1,
