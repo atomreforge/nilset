@@ -223,6 +223,9 @@ private fun BiliVideoContent(
                         Button(onClick = viewModel::resumeTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text(stringResource(R.string.bili_nil_video_resume)) }
                         Button(onClick = viewModel::cancelTask, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.bili_nil_video_cancel)) }
                     }
+                    BiliTaskState.MERGING, BiliTaskState.EXPORTING -> {
+                        Text(stringResource(R.string.bili_nil_video_merging), style = MaterialTheme.typography.titleSmall)
+                    }
                     BiliTaskState.COMPLETED -> {
                         Text(stringResource(R.string.bili_nil_video_completed), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                         when (state.mergeOutcome) {

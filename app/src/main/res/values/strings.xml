@@ -55,6 +55,7 @@
     <string name="bili_nil_video_quality">画质</string>
     <string name="bili_nil_video_not_logged_in">当前未登录，更高清晰度需要登录</string>
     <string name="bili_nil_video_downloading">下载中</string>
+    <string name="bili_nil_video_merging">正在合成...</string>
     <string name="bili_nil_video_paused">已暂停</string>
     <string name="bili_nil_video_completed">下载完成</string>
     <string name="bili_nil_video_failed">下载失败</string>
