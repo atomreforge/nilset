@@ -28,7 +28,7 @@ class BiliMediaExporter(private val context: Context) {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Nilset")
+            put(MediaStore.Video.Media.RELATIVE_PATH, "Download/Nilset/Video")
             put(MediaStore.Video.Media.IS_PENDING, 1)
         }
         val uri = resolver.insert(collection, values) ?: return null
@@ -49,7 +49,7 @@ class BiliMediaExporter(private val context: Context) {
 
     private fun exportToPublicDirectory(sourceFile: File, displayName: String): Uri? {
         val moviesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-        val targetDir = File(moviesDir, "Nilset")
+        val targetDir = File(moviesDir, "Nilset/Video")
         if (!targetDir.exists()) targetDir.mkdirs()
         val targetFile = File(targetDir, displayName)
         try {

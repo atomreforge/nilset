@@ -5,8 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +19,9 @@ import net.atomreforge.nilset.bili.model.BiliAudioQuality
 import net.atomreforge.nilset.bili.model.BiliMergeOutcome
 import net.atomreforge.nilset.bili.model.BiliQuality
 import net.atomreforge.nilset.bili.model.BiliStreamSelector
+import net.atomreforge.nilset.bili.mux.BiliMerger
+import net.atomreforge.nilset.bili.mux.BiliMergeResult
+import net.atomreforge.nilset.bili.store.BiliMediaExporter
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -31,6 +32,8 @@ class BiliDownloadEngine(
     private val apiService: BiliApiService,
     private val snapshotStore: BiliSnapshotStore,
     private val tempDirectory: File,
+    private val merger: BiliMerger,
+    private val exporter: BiliMediaExporter,
     maxConcurrentTasks: Int = DEFAULT_CONCURRENT_TASKS,
     externalScope: CoroutineScope? = null,
 ) {
@@ -73,8 +76,7 @@ class BiliDownloadEngine(
             updateTask(taskId) { it.copy(title = req.reference.bvid, state = BiliTaskState.DOWNLOADING) }
             val vp = File(tempDirectory, "${taskId}_v.m4s")
             val ap = File(tempDirectory, "${taskId}_a.m4s")
-            val vTotal = req.preResolvedVideoLength
-            val aTotal = req.preResolvedAudioLength
+            val mp4 = File(tempDirectory, "${taskId}_output.mp4")
 
             val videoUrl: String
             val audioUrl: String?
@@ -96,6 +98,9 @@ class BiliDownloadEngine(
                 audioUrl = sel.audioStream?.resolvedUrl
             }
 
+            val vTotal = apiService.probeContentLength(videoUrl)
+            val aTotal = audioUrl?.let { apiService.probeContentLength(it) } ?: -1
+
             var vd = vp.length()
             var ad = ap.length()
             var lastUpdate = System.currentTimeMillis()
@@ -112,7 +117,26 @@ class BiliDownloadEngine(
             }
             vDeferred.await()
             aDeferred?.await()
-            updateTaskState(taskId, BiliTaskState.COMPLETED)
+
+            updateTaskState(taskId, BiliTaskState.MERGING)
+            val mergeResult = merger.merge(vp, if (ap.exists()) ap else null, mp4)
+
+            updateTaskState(taskId, BiliTaskState.EXPORTING)
+            val fileName = "${req.reference.bvid}_${req.preResolvedCid}.mp4"
+            val uri = exporter.exportVideo(mp4, fileName)
+
+            vp.delete()
+            ap.delete()
+            mp4.delete()
+
+            updateTask(taskId) {
+                it.copy(
+                    state = BiliTaskState.COMPLETED,
+                    mergeOutcome = mergeResult.outcome,
+                    downgradeReason = mergeResult.reason,
+                    outputUri = uri?.toString(),
+                )
+            }
         } catch (e: CancellationException) { updateTaskState(taskId, BiliTaskState.PAUSED) }
         catch (e: Exception) { BiliLogger.e(TAG, "Task $taskId failed", e); updateTask(taskId) { it.copy(state = BiliTaskState.FAILED, errorMessage = e.message, retryable = true) } }
     }

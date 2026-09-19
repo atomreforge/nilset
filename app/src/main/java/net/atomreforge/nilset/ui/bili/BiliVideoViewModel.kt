@@ -46,7 +46,9 @@ class BiliVideoEngineProvider @Inject constructor(
         val tempDir = File(context.cacheDir, "bili_nil_download")
         val snapshotFile = File(context.filesDir, "bili_dl_snapshots.json")
         apiService = api
-        engine = BiliDownloadEngine(client, api, BiliSnapshotStore(snapshotFile), tempDir)
+        val merger = net.atomreforge.nilset.bili.mux.MediaMuxerMerger()
+        val exporter = net.atomreforge.nilset.bili.store.BiliMediaExporter(context)
+        engine = BiliDownloadEngine(client, api, BiliSnapshotStore(snapshotFile), tempDir, merger, exporter)
     }
 }
 
