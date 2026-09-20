@@ -153,6 +153,13 @@ object AppModule {
         .connectTimeout(DurationParser.parse(config.api.timeouts.connect).toMillis(), TimeUnit.MILLISECONDS)
         .readTimeout(DurationParser.parse(config.api.timeouts.read).toMillis(), TimeUnit.MILLISECONDS)
         .apply {
+            if (config.auth.autoRefresh) {
+                authenticator(tokenAuthenticator)
+            }
+        }
+        .addInterceptor(dynamicBaseUrlInterceptor)
+        .addInterceptor(authInterceptor)
+        .apply {
             if (config.log.isHttpLoggingEnabled) {
                 addInterceptor(HttpLoggingInterceptor(HttpLogBridge(appLogger)).apply {
                     level = HttpLoggingInterceptor.Level.BODY
@@ -160,13 +167,6 @@ object AppModule {
                 })
             }
         }
-        .apply {
-            if (config.auth.autoRefresh) {
-                authenticator(tokenAuthenticator)
-            }
-        }
-        .addInterceptor(dynamicBaseUrlInterceptor)
-        .addInterceptor(authInterceptor)
         .build()
 
     @Provides

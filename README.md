@@ -112,6 +112,14 @@ apiPrefix: /api/v1
 
 控制台 `/config set host_addr <address>` 会在运行时覆盖所有 API 请求的 host 和端口，地址支持 IP、域名和可选协议/端口，并持久化到 `nilset_config`；`/config clear host_addr` 恢复默认 `syewiki.top:4703`。Retrofit 仍使用 YAML 中的 `baseUrl` 作为启动占位，实际请求由动态 BaseUrl 拦截器重写。
 
+Android 默认禁止 release 包访问明文 HTTP。服务端联调应优先启用 HTTPS，并使用：
+
+```text
+/config set host_addr https://<server-domain>:<port>
+```
+
+本地例外仅覆盖模拟器宿主机 `10.0.2.2` 和本机回环 `127.0.0.1`。真机通过 USB 联调时，可先执行 `adb reverse tcp:4703 tcp:4703`，再将服务器地址设为 `127.0.0.1:4703`。不要在 release 构建中全局开放明文 HTTP。
+
 当前客户端调用的接口包括：
 
 - `POST /api/v1/register`
